@@ -1,0 +1,4027 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador Financeiro &amp; Fluxo por Datas</title>
+
+  <style>
+    /* ==========================================================================
+       PALETA MINIMALISTA (FUNDO BRANCO, PRETO, CINZA, VERDE E VERMELHO)
+       100% OFFLINE — SEM DEPENDÊNCIAS EXTERNAS
+       ========================================================================== */
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8f9fa;
+      --bg-muted: #f3f4f6;
+
+      --border-light: #e5e7eb;
+      --border-strong: #d1d5db;
+
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #6b7280;
+
+      --black: #111827;
+      --black-hover: #000000;
+
+      --green: #15803d;
+      --green-bg: #f0fdf4;
+      --green-border: #bbf7d0;
+
+      --red: #b91c1c;
+      --red-bg: #fef2f2;
+      --red-border: #fecaca;
+
+      --radius-lg: 12px;
+      --radius-md: 10px;
+      --radius-sm: 8px;
+
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100%;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ==========================================================================
+       ESTRUTURA PRINCIPAL E CABEÇALHO
+       ========================================================================== */
+    .app-shell {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 14px 64px;
+    }
+
+    @media (min-width: 768px) {
+      .app-shell {
+        padding: 28px 28px 80px;
+      }
+    }
+
+    .app-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    @media (min-width: 768px) {
+      .app-header {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+    }
+
+    .brand-title {
+      font-size: 1.38rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #000000;
+    }
+
+    @media (min-width: 768px) {
+      .brand-title {
+        font-size: 1.68rem;
+      }
+    }
+
+    .brand-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* ==========================================================================
+       NAVEGAÇÃO POR 5 ABAS
+       ========================================================================== */
+    .main-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 18px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+    }
+
+    @media (min-width: 640px) {
+      .main-tabs {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (min-width: 920px) {
+      .main-tabs {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    .tab-btn {
+      padding: 10px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      background: var(--bg-muted);
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      background: var(--black);
+      color: #ffffff;
+      border-color: var(--black);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ==========================================================================
+       BOTÕES MINIMALISTAS
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--black);
+      color: #ffffff;
+      border-color: var(--black);
+    }
+
+    .btn-primary:hover {
+      background: var(--black-hover);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-subtle);
+      border-color: var(--text-secondary);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border-light);
+      padding: 7px 11px;
+      font-size: 0.8rem;
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--red);
+      border-color: var(--red-border);
+      padding: 7px 12px;
+      font-size: 0.8rem;
+    }
+
+    .btn-danger-ghost:hover {
+      background: var(--red-bg);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #ffffff;
+      border-color: var(--red);
+    }
+
+    .btn-danger:hover {
+      background: #991b1b;
+    }
+
+    .btn-sm {
+      padding: 7px 11px;
+      font-size: 0.8rem;
+    }
+
+    .btn-icon {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-icon:hover {
+      color: var(--red);
+      background: var(--red-bg);
+      border-color: var(--red-border);
+    }
+
+    /* ==========================================================================
+       CARDS LIMPOS & SELETOR DE MESES
+       ========================================================================== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+    }
+
+    .month-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+      background: var(--bg-subtle);
+    }
+
+    .month-bar.hidden {
+      display: none;
+    }
+
+    .month-bar-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .month-bar-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .month-pills {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .month-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .month-pill:hover {
+      border-color: var(--black);
+      color: var(--black);
+    }
+
+    .month-pill.active {
+      background: var(--black);
+      border-color: var(--black);
+      color: #ffffff;
+    }
+
+    .month-pill-del {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      color: inherit;
+      opacity: 0.7;
+    }
+
+    .month-pill-del:hover {
+      opacity: 1;
+      background: var(--red);
+      color: #ffffff;
+    }
+
+    /* ==========================================================================
+       KPIS & CORES SEMÂNTICAS (APENAS VERDE E VERMELHO)
+       ========================================================================== */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    @media (min-width: 540px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 920px) {
+      .kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .kpi-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    @media (min-width: 720px) {
+      .kpi-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .kpi-card {
+      padding: 16px 18px;
+    }
+
+    .kpi-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 1.44rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .kpi-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .text-positive { color: var(--green) !important; }
+    .text-negative { color: var(--red) !important; }
+    .text-neutral  { color: var(--text-primary) !important; }
+
+    .kpi-card.is-positive {
+      background: var(--green-bg);
+      border-color: var(--green-border);
+    }
+
+    .kpi-card.is-negative {
+      background: var(--red-bg);
+      border-color: var(--red-border);
+    }
+
+    /* Barra simples de comprometimento (sem arco-íris) */
+    .summary-bar-card {
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      background: var(--bg-subtle);
+    }
+
+    .summary-bar-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+
+    .summary-bar-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--border-light);
+      overflow: hidden;
+      display: flex;
+    }
+
+    .summary-bar-fill-expense {
+      height: 100%;
+      background: var(--red);
+      transition: width 0.2s ease;
+    }
+
+    .summary-bar-fill-surplus {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.2s ease;
+    }
+
+    /* ==========================================================================
+       SEÇÕES E SLIDERS (ABA 1)
+       ========================================================================== */
+    .workspace-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-card {
+      padding: 18px;
+    }
+
+    @media (min-width: 768px) {
+      .section-card {
+        padding: 22px;
+      }
+    }
+
+    .section-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 1.04rem;
+      font-weight: 800;
+      color: #000000;
+    }
+
+    .section-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-total {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+    }
+
+    .badge-total.positive {
+      background: var(--green-bg);
+      border-color: var(--green-border);
+      color: var(--green);
+    }
+
+    .badge-total.negative {
+      background: var(--red-bg);
+      border-color: var(--red-border);
+      color: var(--red);
+    }
+
+    .sort-select {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .sort-select:focus {
+      border-color: var(--black);
+    }
+
+    .categories-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .category-box {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .category-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 11px 14px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .category-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .category-chevron {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      transition: transform 0.16s ease;
+    }
+
+    .category-chevron.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .category-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .category-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .category-subtotal {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--red);
+    }
+
+    .category-pct {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .category-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .category-body.collapsed {
+      display: none;
+    }
+
+    .slider-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slider-item {
+      padding: 12px 13px 10px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      transition: border-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .slider-item:hover {
+      border-color: var(--border-strong);
+    }
+
+    .slider-item.disabled-item {
+      opacity: 0.45;
+      background: var(--bg-subtle);
+    }
+
+    .slider-item-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 240px;
+    }
+
+    .custom-check {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 19px;
+      height: 19px;
+      border-radius: 5px;
+      border: 1.5px solid var(--border-strong);
+      background: #ffffff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: all 0.14s ease;
+    }
+
+    .custom-check:checked {
+      background: var(--black);
+      border-color: var(--black);
+    }
+
+    .custom-check:checked::after {
+      content: "";
+      width: 5px;
+      height: 9px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+
+    .item-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-title-input {
+      width: 100%;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 3px 6px;
+      margin-left: -6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .item-title-input:hover {
+      background: var(--bg-subtle);
+      border-color: var(--border-light);
+    }
+
+    .item-title-input:focus {
+      background: #ffffff;
+      border-color: var(--black);
+    }
+
+    .item-share {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .item-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .item-date-input {
+      height: 35px;
+      padding: 0 8px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.81rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .item-date-input:focus {
+      border-color: var(--black);
+    }
+
+    .currency-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 0 8px;
+      height: 35px;
+    }
+
+    .currency-input-wrap:focus-within {
+      border-color: var(--black);
+    }
+
+    .currency-prefix {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-right: 4px;
+      user-select: none;
+    }
+
+    .value-input {
+      width: 88px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.89rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .value-input.positive { color: var(--green); }
+    .value-input.negative { color: var(--red); }
+
+    .value-input::-webkit-outer-spin-button,
+    .value-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--border-light);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--black);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+
+    .range-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid var(--black);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+
+    .range-max-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      min-width: 66px;
+      text-align: right;
+    }
+
+    /* ==========================================================================
+       ABA 2 — FLUXO POR DATAS & TABELAS LIMPAS
+       ========================================================================== */
+    .filter-bar {
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      background: var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .segmented-toggle {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: #ffffff;
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+    }
+
+    .seg-btn {
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.81rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .seg-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-subtle);
+    }
+
+    .seg-btn.active {
+      background: var(--black);
+      color: #ffffff;
+    }
+
+    .split-tables-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    @media (min-width: 920px) {
+      .split-tables-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .clean-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      min-width: 440px;
+    }
+
+    .clean-table th,
+    .clean-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border-light);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .clean-table th {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 0.73rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .clean-table th.num,
+    .clean-table td.num {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .clean-table tr.date-group-start td {
+      border-top: 2px solid var(--border-strong);
+    }
+
+    .clean-table tr.date-subtotal-row td {
+      background: var(--bg-subtle);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+
+    .clean-table tr.total-row td {
+      font-weight: 800;
+      background: var(--bg-muted);
+      border-top: 1.5px solid var(--black);
+      color: #000000;
+    }
+
+    .clean-table tr.neg-balance-row td {
+      background: var(--red-bg);
+    }
+
+    .date-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      font-size: 0.79rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    .cat-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    /* ==========================================================================
+       ABA 3 — COMPARAÇÃO ENTRE MESES
+       ========================================================================== */
+    .compare-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    @media (min-width: 720px) {
+      .compare-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .compare-month-card {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .compare-month-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .compare-month-name {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #000000;
+    }
+
+    .compare-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.87rem;
+      padding: 4px 0;
+    }
+
+    .compare-row-label { color: var(--text-secondary); }
+    .compare-row-val   { font-weight: 700; }
+
+    .chart-card {
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .chart-svg-wrap {
+      width: 100%;
+      overflow-x: auto;
+      padding-top: 8px;
+    }
+
+    /* ==========================================================================
+       ABA 4 — METAS & RESERVA
+       ========================================================================== */
+    .goals-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 820px) {
+      .goals-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .goal-card {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .goal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .goal-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #000000;
+    }
+
+    .goal-note {
+      font-size: 0.81rem;
+      color: var(--text-secondary);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      line-height: 1.45;
+    }
+
+    .goal-progress-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .goal-progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .goal-progress-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--border-light);
+      overflow: hidden;
+    }
+
+    .goal-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--green);
+      transition: width 0.2s ease;
+    }
+
+    .goal-controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .goal-field-label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .goal-estimate {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      padding-top: 8px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* ==========================================================================
+       ABA 5 — RELATÓRIO DETALHADO
+       ========================================================================== */
+    .report-controls-card {
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      background: var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .report-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .report-sheet {
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .report-sheet {
+        padding: 28px;
+      }
+    }
+
+    .report-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--black);
+      margin-bottom: 18px;
+    }
+
+    .report-title-input {
+      font-family: inherit;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #000000;
+      border: 1px dashed var(--border-strong);
+      border-radius: 6px;
+      padding: 4px 9px;
+      background: var(--bg-subtle);
+      width: 100%;
+      max-width: 520px;
+      outline: none;
+    }
+
+    .report-title-input:focus {
+      border-color: var(--black);
+      background: #ffffff;
+    }
+
+    .report-timestamp {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .report-h2 {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: #000000;
+      margin: 22px 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    /* ==========================================================================
+       RODAPÉ, MODAIS & TOAST
+       ========================================================================== */
+    .app-footer {
+      margin-top: 26px;
+      padding: 15px 18px;
+      background: var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .footer-info {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .empty-state {
+      padding: 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--bg-subtle);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-panel {
+      width: 100%;
+      max-width: 470px;
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      margin: auto;
+    }
+
+    .modal-header {
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #000000;
+    }
+
+    .modal-body {
+      padding: 18px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 13px 18px;
+      border-top: 1px solid var(--border-light);
+      background: var(--bg-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 13px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+
+    .form-control {
+      width: 100%;
+      height: 40px;
+      padding: 0 11px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.89rem;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--black);
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--black);
+      color: #ffffff;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 600;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+      z-index: 2000;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ==========================================================================
+       IMPRESSÃO LIMPA EM PRETO E BRANCO (@media print)
+       ========================================================================== */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .app-header,
+      .main-tabs,
+      .month-bar,
+      .app-footer,
+      .report-controls-card,
+      .modal-backdrop,
+      .toast,
+      #tab-simulador,
+      #tab-fluxo,
+      #tab-comparacao,
+      #tab-metas {
+        display: none !important;
+      }
+
+      .app-shell {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      #tab-relatorio {
+        display: block !important;
+      }
+
+      .report-sheet {
+        border: none !important;
+        padding: 0 !important;
+      }
+
+      .report-title-input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+      }
+
+      .clean-table {
+        page-break-inside: auto;
+      }
+
+      .clean-table tr {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- CABEÇALHO -->
+    <header class="app-header">
+      <div>
+        <h1 class="brand-title">Simulador Financeiro &amp; Fluxo por Datas</h1>
+        <div class="brand-sub">Organização mensal, extrato cronológico, comparativo, metas e relatório</div>
+      </div>
+      <span class="status-badge"><span class="status-dot"></span> Offline · Salvo automaticamente</span>
+    </header>
+
+    <!-- 5 ABAS PRINCIPAIS -->
+    <nav class="main-tabs" role="tablist" aria-label="Abas principais">
+      <button type="button" class="tab-btn active" data-tab="simulador" role="tab" aria-selected="true">1. Simulador Mensal</button>
+      <button type="button" class="tab-btn" data-tab="fluxo" role="tab" aria-selected="false">2. Fluxo por Datas</button>
+      <button type="button" class="tab-btn" data-tab="comparacao" role="tab" aria-selected="false">3. Comparação</button>
+      <button type="button" class="tab-btn" data-tab="metas" role="tab" aria-selected="false">4. Metas &amp; Reserva</button>
+      <button type="button" class="tab-btn" data-tab="relatorio" role="tab" aria-selected="false">5. Relatório</button>
+    </nav>
+
+    <!-- SELETOR DE MESES COMPARTILHADO (ABAS 1 E 2) -->
+    <div class="card month-bar" id="sharedMonthBar">
+      <div class="month-bar-left">
+        <span class="month-bar-label">Mês:</span>
+        <div class="month-pills" id="monthPills"></div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btnAddMonth">+ Novo Mês</button>
+    </div>
+
+    <!-- ======================================================================
+         ABA 1 — SIMULADOR MENSAL
+         ====================================================================== -->
+    <section class="tab-panel active" id="tab-simulador" role="tabpanel">
+      <!-- 4 Cards de Resumo -->
+      <div class="kpi-grid">
+        <div class="card kpi-card is-positive">
+          <div class="kpi-label">Total de Entradas</div>
+          <div class="kpi-value text-positive tabular-nums" id="kpiIncome">R$ 0,00</div>
+          <div class="kpi-sub" id="kpiIncomeSub">0 itens ativos</div>
+        </div>
+        <div class="card kpi-card is-negative">
+          <div class="kpi-label">Total de Saídas</div>
+          <div class="kpi-value text-negative tabular-nums" id="kpiExpense">R$ 0,00</div>
+          <div class="kpi-sub" id="kpiExpenseSub">0 itens ativos</div>
+        </div>
+        <div class="card kpi-card" id="kpiSurplusCard">
+          <div class="kpi-label">Sobra Líquida</div>
+          <div class="kpi-value tabular-nums" id="kpiSurplus">R$ 0,00</div>
+          <div class="kpi-sub" id="kpiSurplusSub">Saldo do mês</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Taxa de Sobra</div>
+          <div class="kpi-value tabular-nums" id="kpiRate">0,0%</div>
+          <div class="kpi-sub" id="kpiCommittedSub">Comprometimento: 0,0%</div>
+        </div>
+      </div>
+
+      <!-- Barra simples de Saídas vs Sobra -->
+      <div class="card summary-bar-card">
+        <div class="summary-bar-head">
+          <strong id="summaryBarTitle">Comprometimento da Renda</strong>
+          <span class="tabular-nums" id="summaryBarNote" style="color:var(--text-secondary);">0% comprometido</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill-expense" id="barExpenseFill" style="width:0%;"></div>
+          <div class="summary-bar-fill-surplus" id="barSurplusFill" style="width:0%;"></div>
+        </div>
+      </div>
+
+      <!-- Entradas & Saídas -->
+      <div class="workspace-stack">
+        <!-- Entradas -->
+        <div class="card section-card">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Entradas (Receitas)</h2>
+              <span class="badge-total positive tabular-nums" id="incomeSectionTotal">R$ 0,00</span>
+            </div>
+            <div class="section-controls">
+              <select class="sort-select" id="sortIncomes" aria-label="Ordenar entradas">
+                <option value="date">Ordenar: Data</option>
+                <option value="value">Ordenar: Maior valor</option>
+              </select>
+              <button type="button" class="btn btn-primary btn-sm" id="btnAddIncome">+ Nova Entrada</button>
+            </div>
+          </div>
+          <div class="slider-list" id="incomeList"></div>
+        </div>
+
+        <!-- Saídas -->
+        <div class="card section-card">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">Saídas (Gastos por Categoria)</h2>
+              <span class="badge-total negative tabular-nums" id="expenseSectionTotal">R$ 0,00</span>
+            </div>
+            <div class="section-controls">
+              <select class="sort-select" id="sortExpenses" aria-label="Ordenar saídas">
+                <option value="date">Ordenar: Data</option>
+                <option value="value">Ordenar: Maior valor</option>
+              </select>
+              <button type="button" class="btn btn-primary btn-sm" id="btnAddExpense">+ Novo Gasto (Slider)</button>
+            </div>
+          </div>
+          <div class="categories-stack" id="categoriesContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         ABA 2 — FLUXO POR DATAS
+         ====================================================================== -->
+    <section class="tab-panel" id="tab-fluxo" role="tabpanel">
+      <div class="card filter-bar">
+        <div class="filter-group">
+          <span class="filter-label">Escopo:</span>
+          <div class="segmented-toggle" role="group" aria-label="Escopo do fluxo">
+            <button type="button" class="seg-btn active" data-flow-scope="month" id="btnFlowScopeMonth">Mês Selecionado</button>
+            <button type="button" class="seg-btn" data-flow-scope="all" id="btnFlowScopeAll">Todos os Meses</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Modo:</span>
+          <div class="segmented-toggle" role="group" aria-label="Visualização do fluxo">
+            <button type="button" class="seg-btn active" data-flow-view="unified" id="btnFlowViewUnified">Extrato Cronológico (Unificado)</button>
+            <button type="button" class="seg-btn" data-flow-view="separated" id="btnFlowViewSeparated">Tabelas Separadas (Entradas &times; Saídas)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="flowKpis"></div>
+      <div id="flowContent"></div>
+    </section>
+
+    <!-- ======================================================================
+         ABA 3 — COMPARAÇÃO ENTRE MESES
+         ====================================================================== -->
+    <section class="tab-panel" id="tab-comparacao" role="tabpanel">
+      <div class="kpi-grid" id="compareConsolidatedKpis"></div>
+      <div class="compare-cards-grid" id="compareMonthCards"></div>
+
+      <div class="card chart-card">
+        <div class="section-header" style="margin-bottom:10px;">
+          <h2 class="section-title">Entradas vs. Saídas vs. Sobra Líquida</h2>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#15803d;"></span> Entradas</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#b91c1c;"></span> Saídas</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#111827;"></span> Sobra Líquida</span>
+          </div>
+        </div>
+        <div class="chart-svg-wrap" id="compareChartWrap"></div>
+      </div>
+
+      <div class="card section-card">
+        <div class="section-header">
+          <h2 class="section-title">Comparativo por Categoria</h2>
+        </div>
+        <div class="table-wrap" id="compareCategoryTableWrap"></div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         ABA 4 — METAS & RESERVA
+         ====================================================================== -->
+    <section class="tab-panel" id="tab-metas" role="tabpanel">
+      <div class="kpi-grid-3" id="goalsSummaryKpis"></div>
+
+      <div class="card section-card" style="margin-bottom:16px;">
+        <div class="section-header" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
+          <h2 class="section-title">Metas Financeiras &amp; Reserva</h2>
+          <button type="button" class="btn btn-primary btn-sm" id="btnAddGoal">+ Nova Meta</button>
+        </div>
+      </div>
+
+      <div class="goals-grid" id="goalsGrid"></div>
+    </section>
+
+    <!-- ======================================================================
+         ABA 5 — RELATÓRIO DETALHADO
+         ====================================================================== -->
+    <section class="tab-panel" id="tab-relatorio" role="tabpanel">
+      <div class="card report-controls-card">
+        <div class="segmented-toggle" role="group" aria-label="Escopo do relatório">
+          <button type="button" class="seg-btn active" data-report-mode="single" id="btnReportModeSingle">Mês Atual</button>
+          <button type="button" class="seg-btn" data-report-mode="full" id="btnReportModeFull">Relatório Completo (Todos os Meses + Metas)</button>
+        </div>
+
+        <div class="report-actions-row">
+          <button type="button" class="btn btn-primary btn-sm" id="btnPrintReport">Imprimir / Salvar PDF</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnCopyWhatsApp">Copiar para WhatsApp</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnExportCsv">Exportar CSV (Excel)</button>
+        </div>
+      </div>
+
+      <div class="report-sheet" id="reportSheet">
+        <div class="report-head">
+          <div style="flex:1; min-width:220px;">
+            <input
+              type="text"
+              class="report-title-input"
+              id="reportTitleInput"
+              aria-label="Título do relatório"
+              placeholder="Relatório Financeiro — Fluxo por Datas"
+            />
+            <div class="report-timestamp" id="reportTimestamp"></div>
+          </div>
+          <div style="text-align:right; font-size:0.78rem; color:var(--text-muted);">
+            <strong style="color:#000000;">Simulador Financeiro</strong><br />
+            Fluxo por Datas
+          </div>
+        </div>
+        <div id="reportDynamicContent"></div>
+      </div>
+    </section>
+
+    <!-- RODAPÉ -->
+    <footer class="card app-footer">
+      <div class="footer-info">
+        Dados salvos automaticamente neste navegador (100% local e privado).
+      </div>
+      <div class="footer-actions">
+        <button type="button" class="btn btn-ghost" id="btnExportJson">Baixar Backup (JSON)</button>
+        <button type="button" class="btn btn-ghost" id="btnImportJson">Importar Backup</button>
+        <button type="button" class="btn btn-danger-ghost" id="btnResetDefault">Restaurar Padrão</button>
+        <input type="file" id="inputImportJson" accept="application/json" style="display:none" />
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: NOVO MÊS
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalMonth" role="dialog" aria-modal="true" aria-labelledby="modalMonthTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalMonthTitle">Criar / Duplicar Mês</h3>
+        <button type="button" class="btn-icon" data-close="modalMonth" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="formNewMonth">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="newMonthName">Nome do novo mês</label>
+            <input class="form-control" id="newMonthName" type="text" placeholder="Ex: Mar/2027" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newMonthSource">Origem dos lançamentos</label>
+            <select class="form-control" id="newMonthSource"></select>
+          </div>
+          <p style="font-size:0.78rem; color:var(--text-muted);">
+            Ao duplicar um mês existente, todas as datas avançam automaticamente em +1 mês.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close="modalMonth">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Criar Mês</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: NOVA ENTRADA
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalIncome" role="dialog" aria-modal="true" aria-labelledby="modalIncomeTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalIncomeTitle">Nova Entrada</h3>
+        <button type="button" class="btn-icon" data-close="modalIncome" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="formNewIncome">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="newIncomeName">Título da entrada</label>
+            <input class="form-control" id="newIncomeName" type="text" placeholder="Ex: Hora Extra, Bônus, Freela..." required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newIncomeDate">Data da entrada</label>
+            <input class="form-control" id="newIncomeDate" type="date" required />
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="newIncomeValue">Valor (R$)</label>
+              <input class="form-control" id="newIncomeValue" type="number" step="0.01" min="0" value="500" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newIncomeMax">Máximo do Slider (R$)</label>
+              <input class="form-control" id="newIncomeMax" type="number" step="10" min="10" value="5000" required />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close="modalIncome">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: NOVO GASTO (SLIDER)
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalExpense" role="dialog" aria-modal="true" aria-labelledby="modalExpenseTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalExpenseTitle">Novo Gasto (Slider)</h3>
+        <button type="button" class="btn-icon" data-close="modalExpense" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="formNewExpense">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="newExpenseName">Título do gasto</label>
+            <input class="form-control" id="newExpenseName" type="text" placeholder="Ex: Aluguel, Farmácia, Lazer..." required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newExpenseDate">Data do vencimento / pagamento</label>
+            <input class="form-control" id="newExpenseDate" type="date" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newExpenseCategory">Categoria</label>
+            <select class="form-control" id="newExpenseCategory"></select>
+          </div>
+          <div id="newCategoryFields" style="display:none;">
+            <div class="form-group">
+              <label class="form-label" for="newCategoryName">Nome da nova categoria</label>
+              <input class="form-control" id="newCategoryName" type="text" placeholder="Ex: Saúde, Lazer..." />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="newExpenseValue">Valor (R$)</label>
+              <input class="form-control" id="newExpenseValue" type="number" step="0.01" min="0" value="250" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newExpenseMax">Máximo do Slider (R$)</label>
+              <input class="form-control" id="newExpenseMax" type="number" step="10" min="10" value="2000" required />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close="modalExpense">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: NOVA META
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalGoal" role="dialog" aria-modal="true" aria-labelledby="modalGoalTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalGoalTitle">Nova Meta Financeira</h3>
+        <button type="button" class="btn-icon" data-close="modalGoal" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="formNewGoal">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="newGoalName">Nome da meta</label>
+            <input class="form-control" id="newGoalName" type="text" placeholder="Ex: Viagem, Troca de Carro..." required />
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="newGoalTarget">Valor alvo (R$)</label>
+              <input class="form-control" id="newGoalTarget" type="number" step="0.01" min="1" value="5000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newGoalAllocated">Valor já alocado (R$)</label>
+              <input class="form-control" id="newGoalAllocated" type="number" step="0.01" min="0" value="0" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newGoalNote">Observação (opcional)</label>
+            <input class="form-control" id="newGoalNote" type="text" placeholder="Ex: Objetivo para o segundo semestre" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close="modalGoal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Criar Meta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: CONFIRMAÇÃO CUSTOMIZADA (SEM window.confirm)
+       ======================================================================== -->
+  <div class="modal-backdrop" id="modalConfirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-panel" style="max-width:400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmTitle">Confirmar ação</h3>
+        <button type="button" class="btn-icon" data-close="modalConfirm" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage" style="color:var(--text-secondary); font-size:0.9rem;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-close="modalConfirm">Cancelar</button>
+        <button type="button" class="btn btn-danger btn-sm" id="btnConfirmAction">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ========================================================================
+       SCRIPT COMPLETO DO APLICATIVO
+       ======================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'simulador_minimalista_branco_v4';
+
+      /**
+       * Dados padrão exatos solicitados para Nov/Dez 2026, Jan/2027 e Fev/2027.
+       */
+      function getDefaultState() {
+        return {
+          activeTab: 'simulador',
+          activeMonthId: 'm_nov_dez_2026',
+          sortIncomesBy: 'date',
+          sortExpensesBy: 'date',
+          flowScope: 'month',     // 'month' | 'all'
+          flowView: 'unified',    // 'unified' | 'separated'
+          reportMode: 'single',   // 'single' | 'full'
+          reportTitle: 'Relatório Financeiro — Fluxo por Datas',
+          months: [
+            {
+              id: 'm_nov_dez_2026',
+              name: 'Nov/Dez 2026',
+              incomes: [
+                { id: 'i_nd_1', date: '2026-11-25', name: 'Salário Luan', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true },
+                { id: 'i_nd_2', date: '2026-11-25', name: 'Salário Esposa', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true },
+                { id: 'i_nd_3', date: '2026-12-04', name: 'Consignado Caixa', value: 16000.00, min: 0, max: 25000, step: 100, enabled: true },
+                { id: 'i_nd_4', date: '2026-12-15', name: '13º Luan', value: 800.00, min: 0, max: 5000, step: 50, enabled: true },
+                { id: 'i_nd_5', date: '2026-12-15', name: '13º Esposa', value: 3500.00, min: 0, max: 8000, step: 50, enabled: true }
+              ],
+              categories: [
+                { id: 'c_nd_cartoes', name: 'Cartões', collapsed: false },
+                { id: 'c_nd_essenciais', name: 'Essenciais', collapsed: false },
+                { id: 'c_nd_parcelas', name: 'Parcelas', collapsed: false }
+              ],
+              expenses: [
+                { id: 'e_nd_1', categoryId: 'c_nd_cartoes', date: '2026-12-01', name: 'Fatura Nubank', value: 2522.30, min: 0, max: 5000, step: 10, enabled: true },
+                { id: 'e_nd_2', categoryId: 'c_nd_cartoes', date: '2026-12-05', name: '2º Cartão de Crédito', value: 12000.00, min: 0, max: 15000, step: 50, enabled: true },
+                { id: 'e_nd_3', categoryId: 'c_nd_essenciais', date: '2026-12-01', name: 'Gasolina', value: 800.00, min: 0, max: 2500, step: 50, enabled: true },
+                { id: 'e_nd_4', categoryId: 'c_nd_essenciais', date: '2026-12-01', name: 'Compras do Mês', value: 1000.00, min: 0, max: 3000, step: 50, enabled: true },
+                { id: 'e_nd_5', categoryId: 'c_nd_essenciais', date: '2026-12-10', name: 'Outras Contas da Casa', value: 1483.00, min: 0, max: 3000, step: 10, enabled: true },
+                { id: 'e_nd_6', categoryId: 'c_nd_parcelas', date: '2026-12-10', name: 'Parcela 4x A', value: 697.50, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_nd_7', categoryId: 'c_nd_parcelas', date: '2026-12-10', name: 'Parcela 4x B', value: 128.00, min: 0, max: 1000, step: 1, enabled: true },
+                { id: 'e_nd_8', categoryId: 'c_nd_parcelas', date: '2026-12-10', name: 'Amortização R$ 4.170', value: 500.00, min: 0, max: 1500, step: 10, enabled: true },
+                { id: 'e_nd_9', categoryId: 'c_nd_parcelas', date: '2026-12-10', name: 'Parcela 10x A', value: 394.00, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_nd_10', categoryId: 'c_nd_parcelas', date: '2026-12-10', name: 'Parcela 10x R$ 2.500/10', value: 250.00, min: 0, max: 1000, step: 10, enabled: true }
+              ]
+            },
+            {
+              id: 'm_jan_2027',
+              name: 'Jan/2027',
+              incomes: [
+                { id: 'i_jan_1', date: '2026-12-28', name: 'Salário Luan', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true },
+                { id: 'i_jan_2', date: '2026-12-28', name: 'Salário Esposa', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true }
+              ],
+              categories: [
+                { id: 'c_jan_essenciais', name: 'Essenciais', collapsed: false },
+                { id: 'c_jan_consignado', name: 'Consignado', collapsed: false },
+                { id: 'c_jan_parcelas', name: 'Parcelas', collapsed: false }
+              ],
+              expenses: [
+                { id: 'e_jan_1', categoryId: 'c_jan_essenciais', date: '2027-01-05', name: 'Gasolina', value: 800.00, min: 0, max: 2500, step: 50, enabled: true },
+                { id: 'e_jan_2', categoryId: 'c_jan_essenciais', date: '2027-01-05', name: 'Compras do Mês', value: 1000.00, min: 0, max: 3000, step: 50, enabled: true },
+                { id: 'e_jan_3', categoryId: 'c_jan_essenciais', date: '2027-01-10', name: 'Outras Contas da Casa', value: 1483.00, min: 0, max: 3000, step: 10, enabled: true },
+                { id: 'e_jan_4', categoryId: 'c_jan_consignado', date: '2027-01-10', name: 'Parcela Consignado Caixa 36x', value: 629.29, min: 0, max: 2000, step: 1, enabled: true },
+                { id: 'e_jan_5', categoryId: 'c_jan_parcelas', date: '2027-01-10', name: 'Parcela 4x A', value: 697.50, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_jan_6', categoryId: 'c_jan_parcelas', date: '2027-01-10', name: 'Parcela 4x B', value: 128.00, min: 0, max: 1000, step: 1, enabled: true },
+                { id: 'e_jan_7', categoryId: 'c_jan_parcelas', date: '2027-01-10', name: 'Amortização R$ 4.170', value: 500.00, min: 0, max: 1500, step: 10, enabled: true },
+                { id: 'e_jan_8', categoryId: 'c_jan_parcelas', date: '2027-01-10', name: 'Parcela 10x A', value: 394.00, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_jan_9', categoryId: 'c_jan_parcelas', date: '2027-01-10', name: 'Parcela 10x R$ 2.500/10', value: 250.00, min: 0, max: 1000, step: 10, enabled: true }
+              ]
+            },
+            {
+              id: 'm_fev_2027',
+              name: 'Fev/2027',
+              incomes: [
+                { id: 'i_fev_1', date: '2027-01-28', name: 'Salário Luan', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true },
+                { id: 'i_fev_2', date: '2027-01-28', name: 'Salário Esposa', value: 3200.00, min: 0, max: 10000, step: 50, enabled: true },
+                { id: 'i_fev_3', date: '2027-02-10', name: 'Entrada Extra Esposa', value: 11000.00, min: 0, max: 20000, step: 100, enabled: true }
+              ],
+              categories: [
+                { id: 'c_fev_essenciais', name: 'Essenciais', collapsed: false },
+                { id: 'c_fev_consignado', name: 'Consignado', collapsed: false },
+                { id: 'c_fev_parcelas', name: 'Parcelas', collapsed: false }
+              ],
+              expenses: [
+                { id: 'e_fev_1', categoryId: 'c_fev_essenciais', date: '2027-02-05', name: 'Gasolina', value: 800.00, min: 0, max: 2500, step: 50, enabled: true },
+                { id: 'e_fev_2', categoryId: 'c_fev_essenciais', date: '2027-02-05', name: 'Compras do Mês', value: 1000.00, min: 0, max: 3000, step: 50, enabled: true },
+                { id: 'e_fev_3', categoryId: 'c_fev_essenciais', date: '2027-02-10', name: 'Outras Contas da Casa', value: 1483.00, min: 0, max: 3000, step: 10, enabled: true },
+                { id: 'e_fev_4', categoryId: 'c_fev_consignado', date: '2027-02-10', name: 'Parcela Consignado Caixa 36x', value: 629.29, min: 0, max: 2000, step: 1, enabled: true },
+                { id: 'e_fev_5', categoryId: 'c_fev_parcelas', date: '2027-02-10', name: 'Parcela 4x A', value: 697.50, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_fev_6', categoryId: 'c_fev_parcelas', date: '2027-02-10', name: 'Parcela 4x B', value: 128.00, min: 0, max: 1000, step: 1, enabled: true },
+                { id: 'e_fev_7', categoryId: 'c_fev_parcelas', date: '2027-02-10', name: 'Amortização R$ 4.170', value: 500.00, min: 0, max: 1500, step: 10, enabled: true },
+                { id: 'e_fev_8', categoryId: 'c_fev_parcelas', date: '2027-02-10', name: 'Parcela 10x A', value: 394.00, min: 0, max: 1500, step: 1, enabled: true },
+                { id: 'e_fev_9', categoryId: 'c_fev_parcelas', date: '2027-02-10', name: 'Parcela 10x R$ 2.500/10', value: 250.00, min: 0, max: 1000, step: 10, enabled: true }
+              ]
+            }
+          ],
+          goals: [
+            {
+              id: 'g_quitacao_caixa',
+              name: 'Quitação Antecipada Consignado Caixa',
+              target: 15311.28,
+              allocated: 15311.28,
+              note: 'Quitação prevista em Fev/27 com desconto proporcional dos juros, eliminando a parcela de R$ 629,29.'
+            },
+            {
+              id: 'g_reserva_emergencia',
+              name: 'Reserva de Emergência',
+              target: 10000.00,
+              allocated: 3650.00,
+              note: 'Colchão de segurança para imprevistos com combustível, casa ou saúde.'
+            }
+          ]
+        };
+      }
+
+      let state = loadState();
+      let confirmCallback = null;
+
+      /* ======================================================================
+         UTILITÁRIOS DE FORMATAÇÃO, DATAS E ARMAZENAMENTO
+         ====================================================================== */
+      const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      function fmtBRL(v) {
+        return brl.format(Number.isFinite(v) ? v : 0);
+      }
+
+      function fmtPct(v) {
+        return (Number.isFinite(v) ? v : 0).toFixed(1).replace('.', ',') + '%';
+      }
+
+      function fmtDateBR(iso) {
+        if (!iso || typeof iso !== 'string') return 'Sem data';
+        const parts = iso.split('-');
+        if (parts.length !== 3) return iso;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+
+      function addMonthsToIsoDate(iso, monthsToAdd) {
+        if (!iso || typeof iso !== 'string') return '2027-01-01';
+        const parts = iso.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) return iso;
+        const [year, month, day] = parts;
+        const targetMonthIdx = (month - 1) + monthsToAdd;
+        const targetYear = year + Math.floor(targetMonthIdx / 12);
+        const normalizedMonth = ((targetMonthIdx % 12) + 12) % 12;
+        const lastDay = new Date(targetYear, normalizedMonth + 1, 0).getDate();
+        const safeDay = Math.min(day, lastDay);
+        return `${targetYear}-${String(normalizedMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+      }
+
+      function getDefaultDateForMonth(month) {
+        const allDates = [
+          ...month.incomes.map((i) => i.date),
+          ...month.expenses.map((e) => e.date)
+        ].filter(Boolean).sort();
+        return allDates[0] || new Date().toISOString().slice(0, 10);
+      }
+
+      function esc(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function uid(prefix) {
+        return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return getDefaultState();
+          const parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.months) || !parsed.months.length) {
+            return getDefaultState();
+          }
+          if (!Array.isArray(parsed.goals)) parsed.goals = getDefaultState().goals;
+          if (!parsed.months.some((m) => m.id === parsed.activeMonthId)) {
+            parsed.activeMonthId = parsed.months[0].id;
+          }
+          return parsed;
+        } catch (err) {
+          console.error('Erro ao ler localStorage:', err);
+          return getDefaultState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          console.error('Erro ao salvar localStorage:', err);
+        }
+      }
+
+      let toastTimer = null;
+      function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+      }
+
+      function getActiveMonth() {
+        return state.months.find((m) => m.id === state.activeMonthId) || state.months[0];
+      }
+
+      function sortItems(items, mode) {
+        const copy = items.slice();
+        if (mode === 'value') {
+          return copy.sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0) || (a.date || '').localeCompare(b.date || ''));
+        }
+        return copy.sort((a, b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31') || (a.name || '').localeCompare(b.name || ''));
+      }
+
+      function styleRange(el) {
+        const min = Number(el.min) || 0;
+        const max = Number(el.max) || 100;
+        const val = Number(el.value) || 0;
+        const pct = max > min ? Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100)) : 0;
+        el.style.background = `linear-gradient(to right, #111827 0%, #111827 ${pct}%, #e5e7eb ${pct}%, #e5e7eb 100%)`;
+      }
+
+      /* ======================================================================
+         CÁLCULOS FINANCEIROS & LINHA DO TEMPO POR DATAS
+         ====================================================================== */
+      function calcMonthSummary(month) {
+        const selectedIncomes = month.incomes.filter((i) => i.enabled);
+        const selectedExpenses = month.expenses.filter((e) => e.enabled);
+        const totalIncome = selectedIncomes.reduce((s, i) => s + (Number(i.value) || 0), 0);
+        const totalExpense = selectedExpenses.reduce((s, e) => s + (Number(e.value) || 0), 0);
+        const surplus = totalIncome - totalExpense;
+        const surplusRate = totalIncome > 0 ? (surplus / totalIncome) * 100 : 0;
+        const committedRate = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : (totalExpense > 0 ? 100 : 0);
+
+        const categoryTotals = {};
+        month.categories.forEach((c) => { categoryTotals[c.id] = 0; });
+        selectedExpenses.forEach((e) => {
+          categoryTotals[e.categoryId] = (categoryTotals[e.categoryId] || 0) + (Number(e.value) || 0);
+        });
+
+        return {
+          month,
+          selectedIncomes,
+          selectedExpenses,
+          totalIncome,
+          totalExpense,
+          surplus,
+          surplusRate,
+          committedRate,
+          categoryTotals
+        };
+      }
+
+      function calcAllMonthsSummary() {
+        const summaries = state.months.map(calcMonthSummary);
+        const totalIncome = summaries.reduce((s, m) => s + m.totalIncome, 0);
+        const totalExpense = summaries.reduce((s, m) => s + m.totalExpense, 0);
+        const totalSurplus = summaries.reduce((s, m) => s + m.surplus, 0);
+        const avgSurplusRate = totalIncome > 0 ? (totalSurplus / totalIncome) * 100 : 0;
+        return { summaries, totalIncome, totalExpense, totalSurplus, avgSurplusRate };
+      }
+
+      function buildTimeline(monthsList) {
+        const entries = [];
+        monthsList.forEach((m) => {
+          const catMap = {};
+          m.categories.forEach((c) => { catMap[c.id] = c.name; });
+
+          m.incomes.filter((i) => i.enabled).forEach((i) => {
+            entries.push({
+              date: i.date || '9999-12-31',
+              monthName: m.name,
+              type: 'income',
+              title: i.name,
+              categoryName: 'Entrada',
+              value: Number(i.value) || 0
+            });
+          });
+
+          m.expenses.filter((e) => e.enabled).forEach((e) => {
+            entries.push({
+              date: e.date || '9999-12-31',
+              monthName: m.name,
+              type: 'expense',
+              title: e.name,
+              categoryName: catMap[e.categoryId] || 'Outros',
+              value: Number(e.value) || 0
+            });
+          });
+        });
+
+        entries.sort((a, b) => {
+          const d = a.date.localeCompare(b.date);
+          if (d !== 0) return d;
+          if (a.type !== b.type) return a.type === 'income' ? -1 : 1;
+          return a.title.localeCompare(b.title);
+        });
+
+        let running = 0;
+        let minBalance = null;
+        let minBalanceDate = null;
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        entries.forEach((row) => {
+          if (row.type === 'income') {
+            running += row.value;
+            totalIncome += row.value;
+          } else {
+            running -= row.value;
+            totalExpense += row.value;
+          }
+          row.balanceAfter = running;
+          if (minBalance === null || running < minBalance) {
+            minBalance = running;
+            minBalanceDate = row.date;
+          }
+        });
+
+        return {
+          entries,
+          incomesOnly: entries.filter((e) => e.type === 'income'),
+          expensesOnly: entries.filter((e) => e.type === 'expense'),
+          totalIncome,
+          totalExpense,
+          finalBalance: running,
+          minBalance: minBalance === null ? 0 : minBalance,
+          minBalanceDate
+        };
+      }
+
+      function groupEntriesByDate(list) {
+        const groups = [];
+        const map = new Map();
+        list.forEach((item) => {
+          if (!map.has(item.date)) {
+            const g = { date: item.date, items: [], subtotal: 0 };
+            map.set(item.date, g);
+            groups.push(g);
+          }
+          const g = map.get(item.date);
+          g.items.push(item);
+          g.subtotal += item.value;
+        });
+        return groups;
+      }
+
+      /* ======================================================================
+         ABAS & SELETOR DE MÊS
+         ====================================================================== */
+      function renderMonthPills() {
+        const wrap = document.getElementById('monthPills');
+        const canDelete = state.months.length > 1;
+        wrap.innerHTML = state.months
+          .map((m) => {
+            const active = m.id === state.activeMonthId ? 'active' : '';
+            const delBtn = canDelete
+              ? `<span class="month-pill-del" data-action="delete-month" data-id="${m.id}" title="Excluir mês">&times;</span>`
+              : '';
+            return `<button type="button" class="month-pill ${active}" data-action="select-month" data-id="${m.id}">${esc(m.name)}${delBtn}</button>`;
+          })
+          .join('');
+      }
+
+      function setActiveTab(tabId) {
+        state.activeTab = tabId;
+        saveState();
+
+        document.querySelectorAll('.tab-btn').forEach((btn) => {
+          const isActive = btn.dataset.tab === tabId;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        document.querySelectorAll('.tab-panel').forEach((panel) => {
+          panel.classList.toggle('active', panel.id === 'tab-' + tabId);
+        });
+
+        document.getElementById('sharedMonthBar').classList.toggle('hidden', tabId !== 'simulador' && tabId !== 'fluxo');
+        renderMonthPills();
+
+        if (tabId === 'simulador') renderSimulatorTab();
+        if (tabId === 'fluxo') renderFlowTab();
+        if (tabId === 'comparacao') renderComparisonTab();
+        if (tabId === 'metas') renderGoalsTab();
+        if (tabId === 'relatorio') renderReportTab();
+      }
+
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+      });
+
+      /* ======================================================================
+         ABA 1 — SIMULADOR MENSAL
+         ====================================================================== */
+      function updateSimulatorMetricsOnly() {
+        const month = getActiveMonth();
+        const sum = calcMonthSummary(month);
+
+        document.getElementById('kpiIncome').textContent = fmtBRL(sum.totalIncome);
+        document.getElementById('kpiIncomeSub').textContent =
+          sum.selectedIncomes.length === 1 ? '1 entrada ativa' : `${sum.selectedIncomes.length} entradas ativas`;
+
+        document.getElementById('kpiExpense').textContent = fmtBRL(sum.totalExpense);
+        document.getElementById('kpiExpenseSub').textContent =
+          sum.selectedExpenses.length === 1 ? '1 gasto ativo' : `${sum.selectedExpenses.length} gastos ativos`;
+
+        const surpEl = document.getElementById('kpiSurplus');
+        const surpCard = document.getElementById('kpiSurplusCard');
+        const surpSub = document.getElementById('kpiSurplusSub');
+        surpEl.textContent = fmtBRL(sum.surplus);
+        surpCard.classList.remove('is-positive', 'is-negative');
+        surpEl.classList.remove('text-positive', 'text-negative');
+
+        if (sum.surplus >= 0) {
+          surpCard.classList.add('is-positive');
+          surpEl.classList.add('text-positive');
+          surpSub.textContent = `Saldo positivo em ${month.name}`;
+        } else {
+          surpCard.classList.add('is-negative');
+          surpEl.classList.add('text-negative');
+          surpSub.textContent = `Déficit em ${month.name}`;
+        }
+
+        const rateEl = document.getElementById('kpiRate');
+        rateEl.textContent = fmtPct(sum.surplusRate);
+        rateEl.className = 'kpi-value tabular-nums ' + (sum.surplus >= 0 ? 'text-positive' : 'text-negative');
+        document.getElementById('kpiCommittedSub').textContent = `Comprometimento: ${fmtPct(sum.committedRate)}`;
+
+        document.getElementById('incomeSectionTotal').textContent = fmtBRL(sum.totalIncome);
+        document.getElementById('expenseSectionTotal').textContent = fmtBRL(sum.totalExpense);
+
+        // Barra simples (vermelho = saídas, verde = sobra)
+        const denom = Math.max(sum.totalIncome, sum.totalExpense, 1);
+        const expW = (sum.totalExpense / denom) * 100;
+        const surpW = sum.surplus > 0 ? (sum.surplus / denom) * 100 : 0;
+        document.getElementById('summaryBarTitle').textContent = `Comprometimento da Renda — ${month.name}`;
+        document.getElementById('summaryBarNote').textContent =
+          sum.totalIncome > 0
+            ? `Saídas: ${fmtPct(sum.committedRate)} · Sobra: ${fmtPct(sum.surplusRate)}`
+            : 'Sem entradas ativas';
+        document.getElementById('barExpenseFill').style.width = expW.toFixed(1) + '%';
+        document.getElementById('barSurplusFill').style.width = surpW.toFixed(1) + '%';
+
+        month.categories.forEach((cat) => {
+          const val = sum.categoryTotals[cat.id] || 0;
+          const pct = sum.totalIncome > 0 ? (val / sum.totalIncome) * 100 : 0;
+          const subEl = document.querySelector(`[data-cat-sub="${cat.id}"]`);
+          const pctEl = document.querySelector(`[data-cat-pct="${cat.id}"]`);
+          if (subEl) subEl.textContent = fmtBRL(val);
+          if (pctEl) pctEl.textContent = `${fmtPct(pct)} da renda`;
+        });
+
+        month.incomes.forEach((inc) => {
+          const el = document.querySelector(`[data-inc-share="${inc.id}"]`);
+          if (el) {
+            const pct = inc.enabled && sum.totalIncome > 0 ? (inc.value / sum.totalIncome) * 100 : 0;
+            el.textContent = inc.enabled ? `${fmtDateBR(inc.date)} · ${fmtPct(pct)} das entradas` : 'Desmarcado (fora do cálculo)';
+          }
+        });
+
+        month.expenses.forEach((exp) => {
+          const el = document.querySelector(`[data-exp-share="${exp.id}"]`);
+          if (el) {
+            const pct = exp.enabled && sum.totalIncome > 0 ? (exp.value / sum.totalIncome) * 100 : 0;
+            el.textContent = exp.enabled ? `${fmtDateBR(exp.date)} · ${fmtPct(pct)} da renda` : 'Desmarcado (fora do cálculo)';
+          }
+        });
+      }
+
+      function renderSimulatorTab() {
+        const month = getActiveMonth();
+        renderMonthPills();
+
+        document.getElementById('sortIncomes').value = state.sortIncomesBy || 'date';
+        document.getElementById('sortExpenses').value = state.sortExpensesBy || 'date';
+
+        // Entradas
+        const incList = document.getElementById('incomeList');
+        const orderedIncomes = sortItems(month.incomes, state.sortIncomesBy);
+        if (!orderedIncomes.length) {
+          incList.innerHTML = '<div class="empty-state">Nenhuma entrada cadastrada neste mês. Clique em <strong>+ Nova Entrada</strong>.</div>';
+        } else {
+          incList.innerHTML = orderedIncomes
+            .map((inc) => {
+              const safeMin = Number(inc.min) || 0;
+              const safeMax = Math.max(Number(inc.max) || 1000, Number(inc.value) || 0);
+              return `
+                <div class="slider-item ${inc.enabled ? '' : 'disabled-item'}" data-inc-row="${inc.id}">
+                  <div class="slider-item-top">
+                    <div class="item-left">
+                      <input type="checkbox" class="custom-check" data-action="toggle-inc" data-id="${inc.id}" ${inc.enabled ? 'checked' : ''} aria-label="Ativar entrada" />
+                      <div class="item-title-wrap">
+                        <input type="text" class="item-title-input" value="${esc(inc.name)}" data-action="title-inc" data-id="${inc.id}" aria-label="Título da entrada" />
+                        <div class="item-share tabular-nums" data-inc-share="${inc.id}"></div>
+                      </div>
+                    </div>
+                    <div class="item-right">
+                      <input type="date" class="item-date-input" value="${esc(inc.date || '')}" data-action="date-inc" data-id="${inc.id}" aria-label="Data da entrada" />
+                      <div class="currency-input-wrap">
+                        <span class="currency-prefix">R$</span>
+                        <input type="number" class="value-input positive tabular-nums" step="0.01" min="0" value="${Number(inc.value).toFixed(2)}" data-action="input-inc" data-id="${inc.id}" aria-label="Valor da entrada" />
+                      </div>
+                      <button type="button" class="btn-icon" data-action="del-inc" data-id="${inc.id}" title="Excluir entrada">&times;</button>
+                    </div>
+                  </div>
+                  <div class="range-row">
+                    <input type="range" class="range-slider" min="${safeMin}" max="${safeMax}" step="${inc.step || 50}" value="${inc.value}" data-action="slider-inc" data-id="${inc.id}" aria-label="Ajustar valor" />
+                    <span class="range-max-label tabular-nums" data-inc-max="${inc.id}">máx ${fmtBRL(safeMax).replace(',00', '')}</span>
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+
+          incList.querySelectorAll('input[type="range"]').forEach(styleRange);
+        }
+
+        // Categorias e Saídas
+        const catWrap = document.getElementById('categoriesContainer');
+        if (!month.categories.length) {
+          catWrap.innerHTML = '<div class="empty-state">Nenhuma categoria cadastrada. Clique em <strong>+ Novo Gasto (Slider)</strong>.</div>';
+        } else {
+          catWrap.innerHTML = month.categories
+            .map((cat) => {
+              const items = sortItems(
+                month.expenses.filter((e) => e.categoryId === cat.id),
+                state.sortExpensesBy
+              );
+              const itemsHtml = items.length
+                ? items
+                    .map((exp) => {
+                      const safeMin = Number(exp.min) || 0;
+                      const safeMax = Math.max(Number(exp.max) || 1000, Number(exp.value) || 0);
+                      return `
+                        <div class="slider-item ${exp.enabled ? '' : 'disabled-item'}" data-exp-row="${exp.id}">
+                          <div class="slider-item-top">
+                            <div class="item-left">
+                              <input type="checkbox" class="custom-check" data-action="toggle-exp" data-id="${exp.id}" ${exp.enabled ? 'checked' : ''} aria-label="Ativar gasto" />
+                              <div class="item-title-wrap">
+                                <input type="text" class="item-title-input" value="${esc(exp.name)}" data-action="title-exp" data-id="${exp.id}" aria-label="Título do gasto" />
+                                <div class="item-share tabular-nums" data-exp-share="${exp.id}"></div>
+                              </div>
+                            </div>
+                            <div class="item-right">
+                              <input type="date" class="item-date-input" value="${esc(exp.date || '')}" data-action="date-exp" data-id="${exp.id}" aria-label="Data do gasto" />
+                              <div class="currency-input-wrap">
+                                <span class="currency-prefix">R$</span>
+                                <input type="number" class="value-input negative tabular-nums" step="0.01" min="0" value="${Number(exp.value).toFixed(2)}" data-action="input-exp" data-id="${exp.id}" aria-label="Valor do gasto" />
+                              </div>
+                              <button type="button" class="btn-icon" data-action="del-exp" data-id="${exp.id}" title="Excluir gasto">&times;</button>
+                            </div>
+                          </div>
+                          <div class="range-row">
+                            <input type="range" class="range-slider" min="${safeMin}" max="${safeMax}" step="${exp.step || 10}" value="${exp.value}" data-action="slider-exp" data-id="${exp.id}" aria-label="Ajustar valor" />
+                            <span class="range-max-label tabular-nums" data-exp-max="${exp.id}">máx ${fmtBRL(safeMax).replace(',00', '')}</span>
+                          </div>
+                        </div>
+                      `;
+                    })
+                    .join('')
+                : '<div class="empty-state">Sem gastos nesta categoria.</div>';
+
+              return `
+                <div class="category-box">
+                  <div class="category-header">
+                    <div class="category-title-wrap" data-action="toggle-cat" data-id="${cat.id}">
+                      <span class="category-chevron ${cat.collapsed ? 'collapsed' : ''}">&#9660;</span>
+                      <span class="category-name">${esc(cat.name)}</span>
+                    </div>
+                    <div class="category-meta">
+                      <span class="category-subtotal tabular-nums" data-cat-sub="${cat.id}">R$ 0,00</span>
+                      <span class="category-pct tabular-nums" data-cat-pct="${cat.id}">0,0% da renda</span>
+                      <button type="button" class="btn btn-ghost btn-sm" data-action="add-exp-cat" data-id="${cat.id}">+ Novo</button>
+                    </div>
+                  </div>
+                  <div class="category-body ${cat.collapsed ? 'collapsed' : ''}">
+                    ${itemsHtml}
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+
+          catWrap.querySelectorAll('input[type="range"]').forEach(styleRange);
+        }
+
+        updateSimulatorMetricsOnly();
+      }
+
+      /* ======================================================================
+         ABA 2 — FLUXO POR DATAS
+         ====================================================================== */
+      function renderFlowTab() {
+        const activeMonth = getActiveMonth();
+        document.getElementById('btnFlowScopeMonth').textContent = `Mês Selecionado (${activeMonth.name})`;
+
+        document.querySelectorAll('[data-flow-scope]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.flowScope === state.flowScope);
+        });
+        document.querySelectorAll('[data-flow-view]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.flowView === state.flowView);
+        });
+
+        const monthsList = state.flowScope === 'all' ? state.months : [activeMonth];
+        const tl = buildTimeline(monthsList);
+        const minNeg = tl.minBalance < 0;
+        const finNeg = tl.finalBalance < 0;
+
+        document.getElementById('flowKpis').innerHTML = `
+          <div class="card kpi-card ${minNeg ? 'is-negative' : ''}">
+            <div class="kpi-label">Menor Saldo do Período</div>
+            <div class="kpi-value ${minNeg ? 'text-negative' : 'text-neutral'} tabular-nums">${fmtBRL(tl.minBalance)}</div>
+            <div class="kpi-sub">${tl.minBalanceDate ? 'Em ' + fmtDateBR(tl.minBalanceDate) : 'Sem movimentações'}</div>
+          </div>
+          <div class="card kpi-card is-positive">
+            <div class="kpi-label">Total de Entradas</div>
+            <div class="kpi-value text-positive tabular-nums">${fmtBRL(tl.totalIncome)}</div>
+            <div class="kpi-sub">${tl.incomesOnly.length} lançamento(s)</div>
+          </div>
+          <div class="card kpi-card is-negative">
+            <div class="kpi-label">Total de Saídas</div>
+            <div class="kpi-value text-negative tabular-nums">${fmtBRL(tl.totalExpense)}</div>
+            <div class="kpi-sub">${tl.expensesOnly.length} lançamento(s)</div>
+          </div>
+          <div class="card kpi-card ${finNeg ? 'is-negative' : 'is-positive'}">
+            <div class="kpi-label">Saldo Final Acumulado</div>
+            <div class="kpi-value ${finNeg ? 'text-negative' : 'text-positive'} tabular-nums">${fmtBRL(tl.finalBalance)}</div>
+            <div class="kpi-sub">${state.flowScope === 'all' ? 'Todos os meses' : activeMonth.name}</div>
+          </div>
+        `;
+
+        const content = document.getElementById('flowContent');
+        if (!tl.entries.length) {
+          content.innerHTML = '<div class="card section-card"><div class="empty-state">Nenhum lançamento ativo encontrado.</div></div>';
+          return;
+        }
+
+        if (state.flowView === 'unified') {
+          let prevDate = null;
+          const rowsHtml = tl.entries
+            .map((row) => {
+              const isNewDate = row.date !== prevDate;
+              prevDate = row.date;
+              const rowCls = [
+                isNewDate ? 'date-group-start' : '',
+                row.balanceAfter < 0 ? 'neg-balance-row' : ''
+              ].filter(Boolean).join(' ');
+
+              const dateCell = isNewDate
+                ? `<span class="date-tag tabular-nums">${fmtDateBR(row.date)}</span>`
+                : `<span style="color:var(--text-muted); font-size:0.78rem; padding-left:6px;">↳ mesmo dia</span>`;
+
+              const valCell = row.type === 'income'
+                ? `<span class="text-positive" style="font-weight:700;">+ ${fmtBRL(row.value)}</span>`
+                : `<span class="text-negative" style="font-weight:700;">- ${fmtBRL(row.value)}</span>`;
+
+              const balCls = row.balanceAfter < 0 ? 'text-negative' : 'text-positive';
+              const monthTag = state.flowScope === 'all'
+                ? `<div style="font-size:0.72rem; color:var(--text-muted);">${esc(row.monthName)}</div>`
+                : '';
+
+              return `
+                <tr class="${rowCls}">
+                  <td>${dateCell}</td>
+                  <td><strong>${esc(row.title)}</strong>${monthTag}</td>
+                  <td><span class="cat-tag">${esc(row.categoryName)}</span></td>
+                  <td class="num tabular-nums">${valCell}</td>
+                  <td class="num tabular-nums ${balCls}" style="font-weight:800;">${fmtBRL(row.balanceAfter)}</td>
+                </tr>
+              `;
+            })
+            .join('');
+
+          content.innerHTML = `
+            <div class="card section-card">
+              <div class="section-header">
+                <div class="section-title-group">
+                  <h2 class="section-title">Extrato Cronológico Dia a Dia</h2>
+                  <span class="badge-total">${tl.entries.length} lançamentos</span>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="clean-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Título</th>
+                      <th>Categoria</th>
+                      <th class="num">Valor</th>
+                      <th class="num">Saldo Acumulado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rowsHtml}
+                    <tr class="total-row">
+                      <td colspan="3">FECHAMENTO DO PERÍODO</td>
+                      <td class="num tabular-nums">${fmtBRL(tl.totalIncome - tl.totalExpense)}</td>
+                      <td class="num tabular-nums ${finNeg ? 'text-negative' : 'text-positive'}">${fmtBRL(tl.finalBalance)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        } else {
+          const incGroups = groupEntriesByDate(tl.incomesOnly);
+          const expGroups = groupEntriesByDate(tl.expensesOnly);
+
+          let incRows = '';
+          incGroups.forEach((g) => {
+            g.items.forEach((item, idx) => {
+              incRows += `
+                <tr class="${idx === 0 ? 'date-group-start' : ''}">
+                  <td>${idx === 0 ? `<span class="date-tag tabular-nums">${fmtDateBR(g.date)}</span>` : ''}</td>
+                  <td><strong>${esc(item.title)}</strong>${state.flowScope === 'all' ? `<div style="font-size:0.72rem; color:var(--text-muted);">${esc(item.monthName)}</div>` : ''}</td>
+                  <td class="num tabular-nums text-positive" style="font-weight:700;">+ ${fmtBRL(item.value)}</td>
+                </tr>
+              `;
+            });
+            incRows += `
+              <tr class="date-subtotal-row">
+                <td colspan="2">Subtotal em ${fmtDateBR(g.date)}</td>
+                <td class="num tabular-nums text-positive">${fmtBRL(g.subtotal)}</td>
+              </tr>
+            `;
+          });
+
+          let expRows = '';
+          expGroups.forEach((g) => {
+            g.items.forEach((item, idx) => {
+              expRows += `
+                <tr class="${idx === 0 ? 'date-group-start' : ''}">
+                  <td>${idx === 0 ? `<span class="date-tag tabular-nums">${fmtDateBR(g.date)}</span>` : ''}</td>
+                  <td><strong>${esc(item.title)}</strong>${state.flowScope === 'all' ? `<div style="font-size:0.72rem; color:var(--text-muted);">${esc(item.monthName)}</div>` : ''}</td>
+                  <td><span class="cat-tag">${esc(item.categoryName)}</span></td>
+                  <td class="num tabular-nums text-negative" style="font-weight:700;">- ${fmtBRL(item.value)}</td>
+                </tr>
+              `;
+            });
+            expRows += `
+              <tr class="date-subtotal-row">
+                <td colspan="3">Subtotal em ${fmtDateBR(g.date)}</td>
+                <td class="num tabular-nums text-negative">${fmtBRL(g.subtotal)}</td>
+              </tr>
+            `;
+          });
+
+          content.innerHTML = `
+            <div class="split-tables-grid">
+              <div class="card section-card">
+                <div class="section-header">
+                  <div class="section-title-group">
+                    <h2 class="section-title">Entradas por Data</h2>
+                    <span class="badge-total positive tabular-nums">${fmtBRL(tl.totalIncome)}</span>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="clean-table" style="min-width:320px;">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Título</th>
+                        <th class="num">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${incRows || '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Sem entradas ativas.</td></tr>'}
+                      <tr class="total-row">
+                        <td colspan="2">TOTAL DE ENTRADAS</td>
+                        <td class="num tabular-nums text-positive">${fmtBRL(tl.totalIncome)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card section-card">
+                <div class="section-header">
+                  <div class="section-title-group">
+                    <h2 class="section-title">Saídas por Data</h2>
+                    <span class="badge-total negative tabular-nums">${fmtBRL(tl.totalExpense)}</span>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="clean-table" style="min-width:390px;">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Título</th>
+                        <th>Categoria</th>
+                        <th class="num">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${expRows || '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Sem saídas ativas.</td></tr>'}
+                      <tr class="total-row">
+                        <td colspan="3">TOTAL DE SAÍDAS</td>
+                        <td class="num tabular-nums text-negative">${fmtBRL(tl.totalExpense)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      document.querySelectorAll('[data-flow-scope]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.flowScope = btn.dataset.flowScope;
+          saveState();
+          renderFlowTab();
+        });
+      });
+
+      document.querySelectorAll('[data-flow-view]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.flowView = btn.dataset.flowView;
+          saveState();
+          renderFlowTab();
+        });
+      });
+
+      /* ======================================================================
+         ABA 3 — COMPARAÇÃO ENTRE MESES (GRÁFICO APENAS VERDE, VERMELHO E PRETO)
+         ====================================================================== */
+      function renderComparisonTab() {
+        const all = calcAllMonthsSummary();
+        const surpCardCls = all.totalSurplus >= 0 ? 'is-positive' : 'is-negative';
+        const surpTextCls = all.totalSurplus >= 0 ? 'text-positive' : 'text-negative';
+
+        document.getElementById('compareConsolidatedKpis').innerHTML = `
+          <div class="card kpi-card is-positive">
+            <div class="kpi-label">Entradas Acumuladas</div>
+            <div class="kpi-value text-positive tabular-nums">${fmtBRL(all.totalIncome)}</div>
+            <div class="kpi-sub">Soma de ${state.months.length} meses</div>
+          </div>
+          <div class="card kpi-card is-negative">
+            <div class="kpi-label">Saídas Acumuladas</div>
+            <div class="kpi-value text-negative tabular-nums">${fmtBRL(all.totalExpense)}</div>
+            <div class="kpi-sub">Total comprometido</div>
+          </div>
+          <div class="card kpi-card ${surpCardCls}">
+            <div class="kpi-label">Sobra Acumulada</div>
+            <div class="kpi-value ${surpTextCls} tabular-nums">${fmtBRL(all.totalSurplus)}</div>
+            <div class="kpi-sub">Disponível para metas</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Taxa Média de Sobra</div>
+            <div class="kpi-value ${surpTextCls} tabular-nums">${fmtPct(all.avgSurplusRate)}</div>
+            <div class="kpi-sub">Sobre a renda total</div>
+          </div>
+        `;
+
+        document.getElementById('compareMonthCards').innerHTML = all.summaries
+          .map((s) => {
+            const cls = s.surplus >= 0 ? 'text-positive' : 'text-negative';
+            const badgeCls = s.surplus >= 0 ? 'positive' : 'negative';
+            return `
+              <div class="card compare-month-card">
+                <div>
+                  <div class="compare-month-head">
+                    <span class="compare-month-name">${esc(s.month.name)}</span>
+                    <span class="badge-total ${badgeCls} tabular-nums">${fmtPct(s.surplusRate)}</span>
+                  </div>
+                  <div class="compare-row" style="margin-top:6px;">
+                    <span class="compare-row-label">Entradas</span>
+                    <span class="compare-row-val text-positive tabular-nums">${fmtBRL(s.totalIncome)}</span>
+                  </div>
+                  <div class="compare-row">
+                    <span class="compare-row-label">Saídas</span>
+                    <span class="compare-row-val text-negative tabular-nums">${fmtBRL(s.totalExpense)}</span>
+                  </div>
+                  <div class="compare-row" style="border-top:1px solid var(--border-light); margin-top:6px; padding-top:8px;">
+                    <span class="compare-row-label" style="font-weight:700; color:#000000;">Sobra Líquida</span>
+                    <span class="compare-row-val ${cls} tabular-nums" style="font-size:1rem;">${fmtBRL(s.surplus)}</span>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" data-action="edit-month-from-compare" data-id="${s.month.id}" style="width:100%;">
+                  Editar Mês
+                </button>
+              </div>
+            `;
+          })
+          .join('');
+
+        renderComparisonSvgChart(all.summaries);
+
+        // Tabela por categoria
+        const catNames = [];
+        state.months.forEach((m) => {
+          m.categories.forEach((c) => {
+            if (!catNames.includes(c.name)) catNames.push(c.name);
+          });
+        });
+
+        const monthHeaders = all.summaries.map((s) => `<th class="num">${esc(s.month.name)}</th>`).join('');
+        let bodyRows = '';
+
+        catNames.forEach((catName) => {
+          let rowSum = 0;
+          const cells = all.summaries
+            .map((s) => {
+              const matched = s.month.categories.filter((c) => c.name === catName);
+              const val = matched.reduce((acc, c) => acc + (s.categoryTotals[c.id] || 0), 0);
+              rowSum += val;
+              return `<td class="num tabular-nums">${val > 0 ? fmtBRL(val) : '<span style="color:var(--text-muted)">—</span>'}</td>`;
+            })
+            .join('');
+
+          bodyRows += `
+            <tr>
+              <td><strong>${esc(catName)}</strong></td>
+              ${cells}
+              <td class="num tabular-nums" style="font-weight:700;">${fmtBRL(rowSum)}</td>
+            </tr>
+          `;
+        });
+
+        const totalExpenseCells = all.summaries.map((s) => `<td class="num tabular-nums text-negative">${fmtBRL(s.totalExpense)}</td>`).join('');
+        const totalIncomeCells = all.summaries.map((s) => `<td class="num tabular-nums text-positive">${fmtBRL(s.totalIncome)}</td>`).join('');
+        const totalSurplusCells = all.summaries
+          .map((s) => `<td class="num tabular-nums ${s.surplus >= 0 ? 'text-positive' : 'text-negative'}">${fmtBRL(s.surplus)}</td>`)
+          .join('');
+
+        document.getElementById('compareCategoryTableWrap').innerHTML = `
+          <table class="clean-table">
+            <thead>
+              <tr>
+                <th>Categoria / Resumo</th>
+                ${monthHeaders}
+                <th class="num">Total Período</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bodyRows}
+              <tr class="total-row">
+                <td>Total de Saídas</td>
+                ${totalExpenseCells}
+                <td class="num tabular-nums text-negative">${fmtBRL(all.totalExpense)}</td>
+              </tr>
+              <tr>
+                <td style="font-weight:700;">Total de Entradas</td>
+                ${totalIncomeCells}
+                <td class="num tabular-nums text-positive" style="font-weight:700;">${fmtBRL(all.totalIncome)}</td>
+              </tr>
+              <tr class="total-row">
+                <td>Sobra Líquida</td>
+                ${totalSurplusCells}
+                <td class="num tabular-nums ${surpTextCls}">${fmtBRL(all.totalSurplus)}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderComparisonSvgChart(summaries) {
+        const wrap = document.getElementById('compareChartWrap');
+        if (!summaries.length) {
+          wrap.innerHTML = '<div class="empty-state">Sem meses para comparar.</div>';
+          return;
+        }
+
+        const count = summaries.length;
+        const groupW = 190;
+        const padLeft = 62;
+        const padRight = 24;
+        const padTop = 30;
+        const padBottom = 42;
+        const chartH = 200;
+        const svgW = Math.max(560, padLeft + padRight + count * groupW);
+        const svgH = padTop + chartH + padBottom;
+
+        const maxVal = Math.max(
+          1000,
+          ...summaries.flatMap((s) => [s.totalIncome, s.totalExpense, Math.abs(s.surplus)])
+        );
+        const niceMax = Math.ceil(maxVal / 2000) * 2000;
+
+        let gridLines = '';
+        for (let i = 0; i <= 4; i++) {
+          const val = (niceMax / 4) * i;
+          const y = padTop + chartH - (val / niceMax) * chartH;
+          const label = val >= 1000 ? `R$ ${(val / 1000).toFixed(0)}k` : `R$ ${val.toFixed(0)}`;
+          gridLines += `
+            <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${svgW - padRight}" y2="${y.toFixed(1)}" stroke="#e5e7eb" stroke-dasharray="3 3" />
+            <text x="${padLeft - 8}" y="${(y + 4).toFixed(1)}" fill="#6b7280" font-size="11" text-anchor="end">${label}</text>
+          `;
+        }
+
+        const barW = 34;
+        const gap = 10;
+        let groupsSvg = '';
+
+        summaries.forEach((s, idx) => {
+          const centerX = padLeft + idx * groupW + groupW / 2;
+          const startX = centerX - (barW * 3 + gap * 2) / 2;
+
+          // Apenas verde (Entradas), vermelho (Saídas) e preto (Sobra positiva / vermelho se negativa)
+          const bars = [
+            { val: s.totalIncome, color: '#15803d', label: s.totalIncome },
+            { val: s.totalExpense, color: '#b91c1c', label: s.totalExpense },
+            { val: Math.max(0, s.surplus), color: s.surplus >= 0 ? '#111827' : '#b91c1c', label: s.surplus }
+          ];
+
+          bars.forEach((b, bIdx) => {
+            const h = Math.max(2, (b.val / niceMax) * chartH);
+            const x = startX + bIdx * (barW + gap);
+            const y = padTop + chartH - h;
+            const shortTxt = Math.abs(b.label) >= 1000
+              ? (b.label / 1000).toFixed(1).replace('.', ',') + 'k'
+              : b.label.toFixed(0);
+            groupsSvg += `
+              <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${h.toFixed(1)}" rx="4" fill="${b.color}">
+                <title>${esc(s.month.name)}: ${fmtBRL(b.label)}</title>
+              </rect>
+              <text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" fill="#111827" font-size="10" font-weight="700" text-anchor="middle">${shortTxt}</text>
+            `;
+          });
+
+          groupsSvg += `
+            <text x="${centerX.toFixed(1)}" y="${(padTop + chartH + 22).toFixed(1)}" fill="#111827" font-size="12" font-weight="700" text-anchor="middle">${esc(s.month.name)}</text>
+          `;
+        });
+
+        wrap.innerHTML = `
+          <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" style="min-width:500px; height:auto; display:block;" role="img" aria-label="Gráfico comparativo de meses">
+            ${gridLines}
+            <line x1="${padLeft}" y1="${padTop + chartH}" x2="${svgW - padRight}" y2="${padTop + chartH}" stroke="#9ca3af" />
+            ${groupsSvg}
+          </svg>
+        `;
+      }
+
+      /* ======================================================================
+         ABA 4 — METAS & RESERVA
+         ====================================================================== */
+      function getMonthlyReferenceSurplus() {
+        const jan = state.months.find((m) => m.id === 'm_jan_2027' || m.name.toLowerCase().includes('jan'));
+        if (jan) return calcMonthSummary(jan).surplus;
+        const all = calcAllMonthsSummary();
+        return state.months.length ? all.totalSurplus / state.months.length : 0;
+      }
+
+      function updateGoalsSummaryOnly() {
+        const all = calcAllMonthsSummary();
+        const available = all.totalSurplus;
+        const totalAllocated = state.goals.reduce((s, g) => s + (Number(g.allocated) || 0), 0);
+        const freeBalance = available - totalAllocated;
+        const isOver = freeBalance < -0.01;
+
+        document.getElementById('goalsSummaryKpis').innerHTML = `
+          <div class="card kpi-card ${available >= 0 ? 'is-positive' : 'is-negative'}">
+            <div class="kpi-label">Saldo Acumulado dos Meses</div>
+            <div class="kpi-value ${available >= 0 ? 'text-positive' : 'text-negative'} tabular-nums">${fmtBRL(available)}</div>
+            <div class="kpi-sub">Soma das sobras líquidas (${state.months.length} meses)</div>
+          </div>
+          <div class="card kpi-card">
+            <div class="kpi-label">Total Alocado nas Metas</div>
+            <div class="kpi-value tabular-nums">${fmtBRL(totalAllocated)}</div>
+            <div class="kpi-sub">${state.goals.length} meta(s) ativa(s)</div>
+          </div>
+          <div class="card kpi-card ${isOver ? 'is-negative' : 'is-positive'}">
+            <div class="kpi-label">Saldo Livre Restante</div>
+            <div class="kpi-value ${isOver ? 'text-negative' : 'text-positive'} tabular-nums">${fmtBRL(freeBalance)}</div>
+            <div class="kpi-sub">${isOver ? 'Alocação excede o saldo acumulado' : 'Disponível para alocar ou manter em caixa'}</div>
+          </div>
+        `;
+      }
+
+      function updateSingleGoalVisuals(goal) {
+        const refMonthly = getMonthlyReferenceSurplus();
+        const target = Math.max(1, Number(goal.target) || 1);
+        const allocated = Math.max(0, Number(goal.allocated) || 0);
+        const pct = Math.min(100, (allocated / target) * 100);
+        const remaining = Math.max(0, target - allocated);
+
+        const fillEl = document.querySelector(`[data-goal-fill="${goal.id}"]`);
+        const pctEl = document.querySelector(`[data-goal-pct="${goal.id}"]`);
+        const remEl = document.querySelector(`[data-goal-rem="${goal.id}"]`);
+        const estEl = document.querySelector(`[data-goal-est="${goal.id}"]`);
+
+        if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+        if (pctEl) pctEl.textContent = `${fmtPct(pct)} concluído`;
+        if (remEl) remEl.textContent = remaining <= 0 ? 'Meta atingida!' : `Faltam ${fmtBRL(remaining)}`;
+
+        if (estEl) {
+          if (remaining <= 0) {
+            estEl.textContent = '100% financiada com o saldo atual';
+          } else if (refMonthly > 0) {
+            const monthsNeeded = Math.ceil(remaining / refMonthly);
+            estEl.textContent = `~${monthsNeeded} ${monthsNeeded === 1 ? 'mês' : 'meses'} (base Jan/27: ${fmtBRL(refMonthly)}/mês)`;
+          } else {
+            estEl.textContent = 'Ajuste a sobra mensal para estimar prazo';
+          }
+        }
+      }
+
+      function renderGoalsTab() {
+        updateGoalsSummaryOnly();
+        const grid = document.getElementById('goalsGrid');
+
+        if (!state.goals.length) {
+          grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Nenhuma meta cadastrada. Clique em <strong>+ Nova Meta</strong>.</div>';
+          return;
+        }
+
+        grid.innerHTML = state.goals
+          .map((g) => {
+            const sliderMax = Math.max(Number(g.target) || 1000, Number(g.allocated) || 0);
+            const noteHtml = g.note ? `<div class="goal-note">${esc(g.note)}</div>` : '';
+            return `
+              <div class="card goal-card">
+                <div class="goal-head">
+                  <h3 class="goal-title">${esc(g.name)}</h3>
+                  <button type="button" class="btn-icon" data-action="del-goal" data-id="${g.id}" title="Excluir meta">&times;</button>
+                </div>
+
+                ${noteHtml}
+
+                <div class="goal-progress-wrap">
+                  <div class="goal-progress-meta">
+                    <strong class="tabular-nums text-positive" data-goal-pct="${g.id}">0,0%</strong>
+                    <span class="tabular-nums" data-goal-rem="${g.id}">Faltam R$ 0,00</span>
+                  </div>
+                  <div class="goal-progress-bar">
+                    <div class="goal-progress-fill" data-goal-fill="${g.id}" style="width:0%;"></div>
+                  </div>
+                </div>
+
+                <div class="goal-controls-grid">
+                  <div>
+                    <label class="goal-field-label">Valor Alocado (R$)</label>
+                    <div class="currency-input-wrap" style="width:100%;">
+                      <span class="currency-prefix">R$</span>
+                      <input type="number" class="value-input positive tabular-nums" style="width:100%;" step="0.01" min="0" value="${Number(g.allocated).toFixed(2)}" data-action="input-goal-alloc" data-id="${g.id}" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="goal-field-label">Valor Alvo (R$)</label>
+                    <div class="currency-input-wrap" style="width:100%;">
+                      <span class="currency-prefix">R$</span>
+                      <input type="number" class="value-input tabular-nums" style="width:100%;" step="0.01" min="1" value="${Number(g.target).toFixed(2)}" data-action="input-goal-target" data-id="${g.id}" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="range-row">
+                  <input type="range" class="range-slider" min="0" max="${sliderMax}" step="10" value="${g.allocated}" data-action="slider-goal" data-id="${g.id}" aria-label="Simular alocação em ${esc(g.name)}" />
+                </div>
+
+                <div class="goal-estimate">
+                  <span>Estimativa para 100%:</span>
+                  <strong class="tabular-nums" style="color:#000000;" data-goal-est="${g.id}">—</strong>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        grid.querySelectorAll('input[type="range"]').forEach(styleRange);
+        state.goals.forEach(updateSingleGoalVisuals);
+      }
+
+      /* ======================================================================
+         ABA 5 — RELATÓRIO DETALHADO
+         ====================================================================== */
+      function buildReportTablesForScope(monthsList, showMonthCol) {
+        const tl = buildTimeline(monthsList);
+        const incGroups = groupEntriesByDate(tl.incomesOnly);
+        const expGroups = groupEntriesByDate(tl.expensesOnly);
+        const surpCls = tl.finalBalance >= 0 ? 'is-positive' : 'is-negative';
+        const surpText = tl.finalBalance >= 0 ? 'text-positive' : 'text-negative';
+        const minCls = tl.minBalance < 0 ? 'is-negative' : '';
+        const minText = tl.minBalance < 0 ? 'text-negative' : 'text-neutral';
+
+        let incRows = '';
+        incGroups.forEach((g) => {
+          g.items.forEach((item, idx) => {
+            incRows += `
+              <tr class="${idx === 0 ? 'date-group-start' : ''}">
+                <td class="tabular-nums">${idx === 0 ? `<strong>${fmtDateBR(g.date)}</strong>` : ''}</td>
+                ${showMonthCol ? `<td>${esc(item.monthName)}</td>` : ''}
+                <td>${esc(item.title)}</td>
+                <td class="num tabular-nums text-positive" style="font-weight:700;">+ ${fmtBRL(item.value)}</td>
+              </tr>
+            `;
+          });
+          incRows += `
+            <tr class="date-subtotal-row">
+              <td colspan="${showMonthCol ? 3 : 2}">Subtotal em ${fmtDateBR(g.date)}</td>
+              <td class="num tabular-nums text-positive">${fmtBRL(g.subtotal)}</td>
+            </tr>
+          `;
+        });
+
+        let expRows = '';
+        expGroups.forEach((g) => {
+          g.items.forEach((item, idx) => {
+            expRows += `
+              <tr class="${idx === 0 ? 'date-group-start' : ''}">
+                <td class="tabular-nums">${idx === 0 ? `<strong>${fmtDateBR(g.date)}</strong>` : ''}</td>
+                ${showMonthCol ? `<td>${esc(item.monthName)}</td>` : ''}
+                <td>${esc(item.title)}</td>
+                <td>${esc(item.categoryName)}</td>
+                <td class="num tabular-nums text-negative" style="font-weight:700;">- ${fmtBRL(item.value)}</td>
+              </tr>
+            `;
+          });
+          expRows += `
+            <tr class="date-subtotal-row">
+              <td colspan="${showMonthCol ? 4 : 3}">Subtotal em ${fmtDateBR(g.date)}</td>
+              <td class="num tabular-nums text-negative">${fmtBRL(g.subtotal)}</td>
+            </tr>
+          `;
+        });
+
+        let prevDate = null;
+        const flowRows = tl.entries
+          .map((row) => {
+            const isNew = row.date !== prevDate;
+            prevDate = row.date;
+            const rowCls = [
+              isNew ? 'date-group-start' : '',
+              row.balanceAfter < 0 ? 'neg-balance-row' : ''
+            ].filter(Boolean).join(' ');
+            return `
+              <tr class="${rowCls}">
+                <td class="tabular-nums">${isNew ? `<strong>${fmtDateBR(row.date)}</strong>` : ''}</td>
+                <td>${esc(row.title)}${showMonthCol ? ` <span style="color:var(--text-muted);font-size:0.74rem;">(${esc(row.monthName)})</span>` : ''}</td>
+                <td>${esc(row.categoryName)}</td>
+                <td class="num tabular-nums ${row.type === 'income' ? 'text-positive' : 'text-negative'}" style="font-weight:700;">
+                  ${row.type === 'income' ? '+ ' + fmtBRL(row.value) : '- ' + fmtBRL(row.value)}
+                </td>
+                <td class="num tabular-nums ${row.balanceAfter < 0 ? 'text-negative' : 'text-positive'}" style="font-weight:800;">
+                  ${fmtBRL(row.balanceAfter)}
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+
+        return `
+          <div class="kpi-grid">
+            <div class="card kpi-card is-positive">
+              <div class="kpi-label">Total de Entradas</div>
+              <div class="kpi-value text-positive tabular-nums">${fmtBRL(tl.totalIncome)}</div>
+            </div>
+            <div class="card kpi-card is-negative">
+              <div class="kpi-label">Total de Saídas</div>
+              <div class="kpi-value text-negative tabular-nums">${fmtBRL(tl.totalExpense)}</div>
+            </div>
+            <div class="card kpi-card ${surpCls}">
+              <div class="kpi-label">Saldo Final</div>
+              <div class="kpi-value ${surpText} tabular-nums">${fmtBRL(tl.finalBalance)}</div>
+            </div>
+            <div class="card kpi-card ${minCls}">
+              <div class="kpi-label">Menor Saldo (${tl.minBalanceDate ? fmtDateBR(tl.minBalanceDate) : '—'})</div>
+              <div class="kpi-value ${minText} tabular-nums">${fmtBRL(tl.minBalance)}</div>
+            </div>
+          </div>
+
+          <div class="report-h2">1. Entradas por Data</div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  ${showMonthCol ? '<th>Mês</th>' : ''}
+                  <th>Título</th>
+                  <th class="num">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${incRows || `<tr><td colspan="${showMonthCol ? 4 : 3}">Nenhuma entrada ativa.</td></tr>`}
+                <tr class="total-row">
+                  <td colspan="${showMonthCol ? 3 : 2}">TOTAL DE ENTRADAS</td>
+                  <td class="num tabular-nums text-positive">${fmtBRL(tl.totalIncome)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="report-h2">2. Saídas por Data e Categoria</div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  ${showMonthCol ? '<th>Mês</th>' : ''}
+                  <th>Título</th>
+                  <th>Categoria</th>
+                  <th class="num">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${expRows || `<tr><td colspan="${showMonthCol ? 5 : 4}">Nenhuma saída ativa.</td></tr>`}
+                <tr class="total-row">
+                  <td colspan="${showMonthCol ? 4 : 3}">TOTAL DE SAÍDAS</td>
+                  <td class="num tabular-nums text-negative">${fmtBRL(tl.totalExpense)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="report-h2">3. Extrato Cronológico Dia a Dia</div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Título</th>
+                  <th>Categoria</th>
+                  <th class="num">Valor</th>
+                  <th class="num">Saldo Acumulado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${flowRows || '<tr><td colspan="5">Sem movimentações ativas.</td></tr>'}
+                <tr class="total-row">
+                  <td colspan="3">FECHAMENTO DO PERÍODO</td>
+                  <td class="num tabular-nums">${fmtBRL(tl.totalIncome - tl.totalExpense)}</td>
+                  <td class="num tabular-nums ${surpText}">${fmtBRL(tl.finalBalance)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderReportTab() {
+        const activeMonth = getActiveMonth();
+        document.getElementById('btnReportModeSingle').textContent = `Apenas ${activeMonth.name}`;
+        document.querySelectorAll('[data-report-mode]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.reportMode === state.reportMode);
+        });
+
+        document.getElementById('reportTitleInput').value = state.reportTitle;
+        const nowStr = new Date().toLocaleDateString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        document.getElementById('reportTimestamp').textContent =
+          `Gerado em ${nowStr} · Escopo: ${state.reportMode === 'single' ? activeMonth.name : 'Todos os Meses + Metas'}`;
+
+        const container = document.getElementById('reportDynamicContent');
+
+        if (state.reportMode === 'single') {
+          container.innerHTML = buildReportTablesForScope([activeMonth], false);
+          return;
+        }
+
+        const all = calcAllMonthsSummary();
+        let html = buildReportTablesForScope(state.months, true);
+
+        const compRows = all.summaries
+          .map((s) => `
+            <tr>
+              <td><strong>${esc(s.month.name)}</strong></td>
+              <td class="num tabular-nums text-positive">${fmtBRL(s.totalIncome)}</td>
+              <td class="num tabular-nums text-negative">${fmtBRL(s.totalExpense)}</td>
+              <td class="num tabular-nums ${s.surplus >= 0 ? 'text-positive' : 'text-negative'}" style="font-weight:700;">${fmtBRL(s.surplus)}</td>
+              <td class="num tabular-nums">${fmtPct(s.surplusRate)}</td>
+            </tr>
+          `)
+          .join('');
+
+        html += `
+          <div class="report-h2">4. Comparativo Consolidado por Mês</div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th class="num">Entradas</th>
+                  <th class="num">Saídas</th>
+                  <th class="num">Sobra Líquida</th>
+                  <th class="num">Taxa de Sobra</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${compRows}
+                <tr class="total-row">
+                  <td>TOTAL CONSOLIDADO</td>
+                  <td class="num tabular-nums text-positive">${fmtBRL(all.totalIncome)}</td>
+                  <td class="num tabular-nums text-negative">${fmtBRL(all.totalExpense)}</td>
+                  <td class="num tabular-nums ${all.totalSurplus >= 0 ? 'text-positive' : 'text-negative'}">${fmtBRL(all.totalSurplus)}</td>
+                  <td class="num tabular-nums">${fmtPct(all.avgSurplusRate)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        const totalAllocated = state.goals.reduce((s, g) => s + (Number(g.allocated) || 0), 0);
+        const freeBalance = all.totalSurplus - totalAllocated;
+        const goalRows = state.goals
+          .map((g) => {
+            const pct = g.target > 0 ? Math.min(100, (g.allocated / g.target) * 100) : 0;
+            const rem = Math.max(0, g.target - g.allocated);
+            return `
+              <tr>
+                <td><strong>${esc(g.name)}</strong>${g.note ? `<div style="font-size:0.74rem; color:var(--text-muted);">${esc(g.note)}</div>` : ''}</td>
+                <td class="num tabular-nums">${fmtBRL(g.target)}</td>
+                <td class="num tabular-nums text-positive">${fmtBRL(g.allocated)}</td>
+                <td class="num tabular-nums">${fmtBRL(rem)}</td>
+                <td class="num tabular-nums"><strong>${fmtPct(pct)}</strong></td>
+              </tr>
+            `;
+          })
+          .join('');
+
+        html += `
+          <div class="report-h2">5. Metas &amp; Reserva</div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Meta</th>
+                  <th class="num">Alvo</th>
+                  <th class="num">Alocado</th>
+                  <th class="num">Faltante</th>
+                  <th class="num">Progresso</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${goalRows || '<tr><td colspan="5">Nenhuma meta cadastrada.</td></tr>'}
+                <tr class="date-subtotal-row">
+                  <td colspan="2">Total Alocado vs. Saldo Livre Restante</td>
+                  <td class="num tabular-nums">${fmtBRL(totalAllocated)}</td>
+                  <td colspan="2" class="num tabular-nums ${freeBalance >= 0 ? 'text-positive' : 'text-negative'}">Livre: ${fmtBRL(freeBalance)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        container.innerHTML = html;
+      }
+
+      /* ======================================================================
+         COPIAR WHATSAPP, IMPRIMIR E EXPORTAR CSV
+         ====================================================================== */
+      function copyTextOffline(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { console.error(e); }
+        document.body.removeChild(ta);
+        return ok;
+      }
+
+      document.getElementById('btnCopyWhatsApp').addEventListener('click', () => {
+        const monthsList = state.reportMode === 'single' ? [getActiveMonth()] : state.months;
+        const tl = buildTimeline(monthsList);
+        const nowStr = new Date().toLocaleDateString('pt-BR');
+        const lines = [];
+
+        lines.push(`*${(state.reportTitle || 'RELATÓRIO FINANCEIRO').toUpperCase()}*`);
+        lines.push(`Gerado em: ${nowStr} | Escopo: ${state.reportMode === 'single' ? getActiveMonth().name : 'Todos os Meses'}`);
+        lines.push('------------------------------');
+        lines.push(`Entradas: *${fmtBRL(tl.totalIncome)}*`);
+        lines.push(`Saídas: *${fmtBRL(tl.totalExpense)}*`);
+        lines.push(`Saldo Final: *${fmtBRL(tl.finalBalance)}*`);
+        if (tl.minBalanceDate) {
+          lines.push(`Menor Saldo: *${fmtBRL(tl.minBalance)}* em ${fmtDateBR(tl.minBalanceDate)}`);
+        }
+
+        lines.push('');
+        lines.push('*ENTRADAS POR DATA*');
+        tl.incomesOnly.forEach((i) => {
+          lines.push(`• ${fmtDateBR(i.date)} — ${i.title}: +${fmtBRL(i.value)}`);
+        });
+
+        lines.push('');
+        lines.push('*SAÍDAS POR DATA*');
+        tl.expensesOnly.forEach((e) => {
+          lines.push(`• ${fmtDateBR(e.date)} — ${e.title} (${e.categoryName}): -${fmtBRL(e.value)}`);
+        });
+
+        lines.push('');
+        lines.push('*EXTRATO DIA A DIA (SALDO ACUMULADO)*');
+        tl.entries.forEach((row) => {
+          const sign = row.type === 'income' ? '+' : '-';
+          lines.push(`• ${fmtDateBR(row.date)} | ${row.title}: ${sign}${fmtBRL(row.value)} -> Saldo: *${fmtBRL(row.balanceAfter)}*`);
+        });
+
+        if (state.reportMode === 'full' && state.goals.length) {
+          lines.push('');
+          lines.push('*METAS & RESERVA*');
+          state.goals.forEach((g) => {
+            const pct = g.target > 0 ? Math.min(100, (g.allocated / g.target) * 100) : 0;
+            lines.push(`• ${g.name}: ${fmtBRL(g.allocated)} / ${fmtBRL(g.target)} (${fmtPct(pct)})`);
+          });
+        }
+
+        const ok = copyTextOffline(lines.join('\n'));
+        showToast(ok ? 'Relatório copiado para o WhatsApp!' : 'Não foi possível copiar automaticamente.');
+      });
+
+      document.getElementById('btnExportCsv').addEventListener('click', () => {
+        const sep = ';';
+        const cell = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const monthsList = state.reportMode === 'single' ? [getActiveMonth()] : state.months;
+        const tl = buildTimeline(monthsList);
+        const rows = [];
+
+        rows.push(['Data', 'Mês', 'Tipo', 'Categoria', 'Título', 'Valor (R$)', 'Saldo Acumulado (R$)'].map(cell).join(sep));
+
+        tl.entries.forEach((row) => {
+          const signedVal = row.type === 'income' ? row.value : -row.value;
+          rows.push([
+            fmtDateBR(row.date),
+            row.monthName,
+            row.type === 'income' ? 'Entrada' : 'Saída',
+            row.categoryName,
+            row.title,
+            signedVal.toFixed(2).replace('.', ','),
+            row.balanceAfter.toFixed(2).replace('.', ',')
+          ].map(cell).join(sep));
+        });
+
+        const blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fluxo_por_datas.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('CSV exportado com sucesso!');
+      });
+
+      document.getElementById('btnPrintReport').addEventListener('click', () => window.print());
+
+      document.getElementById('reportTitleInput').addEventListener('input', (e) => {
+        state.reportTitle = e.target.value;
+        saveState();
+      });
+
+      document.querySelectorAll('[data-report-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.reportMode = btn.dataset.reportMode;
+          saveState();
+          renderReportTab();
+        });
+      });
+
+      /* ======================================================================
+         EVENTOS — MESES, SLIDERS, COMPARAÇÃO E METAS
+         ====================================================================== */
+      document.getElementById('monthPills').addEventListener('click', (e) => {
+        const del = e.target.closest('[data-action="delete-month"]');
+        if (del) {
+          e.stopPropagation();
+          const id = del.dataset.id;
+          const m = state.months.find((x) => x.id === id);
+          if (!m || state.months.length <= 1) return;
+          openConfirm('Excluir mês', `Deseja remover "${m.name}" e todos os seus lançamentos?`, () => {
+            state.months = state.months.filter((x) => x.id !== id);
+            if (state.activeMonthId === id) state.activeMonthId = state.months[0].id;
+            saveState();
+            setActiveTab(state.activeTab);
+            showToast(`Mês "${m.name}" removido.`);
+          });
+          return;
+        }
+
+        const pill = e.target.closest('[data-action="select-month"]');
+        if (pill) {
+          state.activeMonthId = pill.dataset.id;
+          saveState();
+          renderMonthPills();
+          if (state.activeTab === 'simulador') renderSimulatorTab();
+          if (state.activeTab === 'fluxo') renderFlowTab();
+        }
+      });
+
+      document.getElementById('sortIncomes').addEventListener('change', (e) => {
+        state.sortIncomesBy = e.target.value;
+        saveState();
+        renderSimulatorTab();
+      });
+
+      document.getElementById('sortExpenses').addEventListener('change', (e) => {
+        state.sortExpensesBy = e.target.value;
+        saveState();
+        renderSimulatorTab();
+      });
+
+      // Entradas
+      document.getElementById('incomeList').addEventListener('input', (e) => {
+        const t = e.target;
+        const action = t.dataset.action;
+        const id = t.dataset.id;
+        if (!action || !id) return;
+        const inc = getActiveMonth().incomes.find((i) => i.id === id);
+        if (!inc) return;
+
+        if (action === 'title-inc') {
+          inc.name = t.value;
+          saveState();
+        } else if (action === 'slider-inc') {
+          inc.value = parseFloat(t.value) || 0;
+          styleRange(t);
+          const num = document.querySelector(`[data-action="input-inc"][data-id="${id}"]`);
+          if (num) num.value = inc.value.toFixed(2);
+          saveState();
+          updateSimulatorMetricsOnly();
+        } else if (action === 'input-inc') {
+          inc.value = Math.max(0, parseFloat(t.value) || 0);
+          const slider = document.querySelector(`[data-action="slider-inc"][data-id="${id}"]`);
+          if (slider) {
+            if (inc.value > Number(slider.max)) {
+              inc.max = Math.ceil(inc.value / 500) * 500;
+              slider.max = inc.max;
+              const lbl = document.querySelector(`[data-inc-max="${id}"]`);
+              if (lbl) lbl.textContent = 'máx ' + fmtBRL(inc.max).replace(',00', '');
+            }
+            slider.value = inc.value;
+            styleRange(slider);
+          }
+          saveState();
+          updateSimulatorMetricsOnly();
+        }
+      });
+
+      document.getElementById('incomeList').addEventListener('change', (e) => {
+        const t = e.target;
+        const action = t.dataset.action;
+        const id = t.dataset.id;
+        if (!action || !id) return;
+        const inc = getActiveMonth().incomes.find((i) => i.id === id);
+        if (!inc) return;
+
+        if (action === 'toggle-inc') {
+          inc.enabled = t.checked;
+          const row = document.querySelector(`[data-inc-row="${id}"]`);
+          if (row) row.classList.toggle('disabled-item', !inc.enabled);
+          saveState();
+          updateSimulatorMetricsOnly();
+        } else if (action === 'date-inc') {
+          inc.date = t.value;
+          saveState();
+          if (state.sortIncomesBy === 'date') renderSimulatorTab();
+          else updateSimulatorMetricsOnly();
+        }
+      });
+
+      document.getElementById('incomeList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="del-inc"]');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const month = getActiveMonth();
+        const inc = month.incomes.find((i) => i.id === id);
+        if (!inc) return;
+        openConfirm('Remover entrada', `Deseja remover "${inc.name}" de ${month.name}?`, () => {
+          month.incomes = month.incomes.filter((i) => i.id !== id);
+          saveState();
+          renderSimulatorTab();
+          showToast('Entrada removida.');
+        });
+      });
+
+      // Saídas
+      document.getElementById('categoriesContainer').addEventListener('input', (e) => {
+        const t = e.target;
+        const action = t.dataset.action;
+        const id = t.dataset.id;
+        if (!action || !id) return;
+        const exp = getActiveMonth().expenses.find((x) => x.id === id);
+        if (!exp) return;
+
+        if (action === 'title-exp') {
+          exp.name = t.value;
+          saveState();
+        } else if (action === 'slider-exp') {
+          exp.value = parseFloat(t.value) || 0;
+          styleRange(t);
+          const num = document.querySelector(`[data-action="input-exp"][data-id="${id}"]`);
+          if (num) num.value = exp.value.toFixed(2);
+          saveState();
+          updateSimulatorMetricsOnly();
+        } else if (action === 'input-exp') {
+          exp.value = Math.max(0, parseFloat(t.value) || 0);
+          const slider = document.querySelector(`[data-action="slider-exp"][data-id="${id}"]`);
+          if (slider) {
+            if (exp.value > Number(slider.max)) {
+              exp.max = Math.ceil(exp.value / 250) * 250;
+              slider.max = exp.max;
+              const lbl = document.querySelector(`[data-exp-max="${id}"]`);
+              if (lbl) lbl.textContent = 'máx ' + fmtBRL(exp.max).replace(',00', '');
+            }
+            slider.value = exp.value;
+            styleRange(slider);
+          }
+          saveState();
+          updateSimulatorMetricsOnly();
+        }
+      });
+
+      document.getElementById('categoriesContainer').addEventListener('change', (e) => {
+        const t = e.target;
+        const action = t.dataset.action;
+        const id = t.dataset.id;
+        if (!action || !id) return;
+        const exp = getActiveMonth().expenses.find((x) => x.id === id);
+        if (!exp) return;
+
+        if (action === 'toggle-exp') {
+          exp.enabled = t.checked;
+          const row = document.querySelector(`[data-exp-row="${id}"]`);
+          if (row) row.classList.toggle('disabled-item', !exp.enabled);
+          saveState();
+          updateSimulatorMetricsOnly();
+        } else if (action === 'date-exp') {
+          exp.date = t.value;
+          saveState();
+          if (state.sortExpensesBy === 'date') renderSimulatorTab();
+          else updateSimulatorMetricsOnly();
+        }
+      });
+
+      document.getElementById('categoriesContainer').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('[data-action="del-exp"]');
+        if (delBtn) {
+          const id = delBtn.dataset.id;
+          const month = getActiveMonth();
+          const exp = month.expenses.find((x) => x.id === id);
+          if (!exp) return;
+          openConfirm('Remover gasto', `Deseja remover "${exp.name}" de ${month.name}?`, () => {
+            month.expenses = month.expenses.filter((x) => x.id !== id);
+            saveState();
+            renderSimulatorTab();
+            showToast('Gasto removido.');
+          });
+          return;
+        }
+
+        const addCatBtn = e.target.closest('[data-action="add-exp-cat"]');
+        if (addCatBtn) {
+          openExpenseModal(addCatBtn.dataset.id);
+          return;
+        }
+
+        const toggleCat = e.target.closest('[data-action="toggle-cat"]');
+        if (toggleCat) {
+          const cat = getActiveMonth().categories.find((c) => c.id === toggleCat.dataset.id);
+          if (!cat) return;
+          cat.collapsed = !cat.collapsed;
+          saveState();
+          renderSimulatorTab();
+        }
+      });
+
+      // Comparação -> Editar Mês
+      document.getElementById('compareMonthCards').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="edit-month-from-compare"]');
+        if (!btn) return;
+        state.activeMonthId = btn.dataset.id;
+        saveState();
+        setActiveTab('simulador');
+      });
+
+      // Metas
+      document.getElementById('goalsGrid').addEventListener('input', (e) => {
+        const t = e.target;
+        const action = t.dataset.action;
+        const id = t.dataset.id;
+        if (!action || !id) return;
+        const goal = state.goals.find((g) => g.id === id);
+        if (!goal) return;
+
+        if (action === 'slider-goal') {
+          goal.allocated = parseFloat(t.value) || 0;
+          styleRange(t);
+          const num = document.querySelector(`[data-action="input-goal-alloc"][data-id="${id}"]`);
+          if (num) num.value = goal.allocated.toFixed(2);
+          saveState();
+          updateSingleGoalVisuals(goal);
+          updateGoalsSummaryOnly();
+        } else if (action === 'input-goal-alloc') {
+          goal.allocated = Math.max(0, parseFloat(t.value) || 0);
+          const slider = document.querySelector(`[data-action="slider-goal"][data-id="${id}"]`);
+          if (slider) {
+            if (goal.allocated > Number(slider.max)) slider.max = Math.ceil(goal.allocated / 500) * 500;
+            slider.value = goal.allocated;
+            styleRange(slider);
+          }
+          saveState();
+          updateSingleGoalVisuals(goal);
+          updateGoalsSummaryOnly();
+        } else if (action === 'input-goal-target') {
+          goal.target = Math.max(1, parseFloat(t.value) || 1);
+          const slider = document.querySelector(`[data-action="slider-goal"][data-id="${id}"]`);
+          if (slider) {
+            slider.max = Math.max(goal.target, goal.allocated);
+            styleRange(slider);
+          }
+          saveState();
+          updateSingleGoalVisuals(goal);
+          updateGoalsSummaryOnly();
+        }
+      });
+
+      document.getElementById('goalsGrid').addEventListener('click', (e) => {
+        const del = e.target.closest('[data-action="del-goal"]');
+        if (!del) return;
+        const id = del.dataset.id;
+        const goal = state.goals.find((g) => g.id === id);
+        if (!goal) return;
+        openConfirm('Remover meta', `Deseja excluir a meta "${goal.name}"?`, () => {
+          state.goals = state.goals.filter((g) => g.id !== id);
+          saveState();
+          renderGoalsTab();
+          showToast('Meta removida.');
+        });
+      });
+
+      /* ======================================================================
+         MODAIS & BACKUP
+         ====================================================================== */
+      function openModal(id) { document.getElementById(id).classList.add('open'); }
+      function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+      document.querySelectorAll('[data-close]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.close));
+      });
+
+      document.querySelectorAll('.modal-backdrop').forEach((bg) => {
+        bg.addEventListener('click', (e) => { if (e.target === bg) bg.classList.remove('open'); });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.modal-backdrop.open').forEach((m) => m.classList.remove('open'));
+        }
+      });
+
+      function openConfirm(title, message, onConfirm) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        confirmCallback = onConfirm;
+        openModal('modalConfirm');
+      }
+
+      document.getElementById('btnConfirmAction').addEventListener('click', () => {
+        const cb = confirmCallback;
+        confirmCallback = null;
+        closeModal('modalConfirm');
+        if (typeof cb === 'function') cb();
+      });
+
+      // Novo Mês
+      document.getElementById('btnAddMonth').addEventListener('click', () => {
+        document.getElementById('formNewMonth').reset();
+        const select = document.getElementById('newMonthSource');
+        select.innerHTML =
+          state.months.map((m) => `<option value="${m.id}">Duplicar "${esc(m.name)}" (+1 mês nas datas)</option>`).join('') +
+          '<option value="__BLANK__">Começar em branco</option>';
+        select.value = state.activeMonthId;
+        openModal('modalMonth');
+        setTimeout(() => document.getElementById('newMonthName').focus(), 40);
+      });
+
+      document.getElementById('formNewMonth').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('newMonthName').value.trim();
+        const sourceId = document.getElementById('newMonthSource').value;
+        if (!name) return;
+
+        let newMonth;
+        if (sourceId === '__BLANK__') {
+          const baseDate = addMonthsToIsoDate(getDefaultDateForMonth(getActiveMonth()), 1);
+          newMonth = {
+            id: uid('m'),
+            name,
+            incomes: [{ id: uid('i'), date: baseDate, name: 'Salário Principal', value: 3200, min: 0, max: 10000, step: 50, enabled: true }],
+            categories: [{ id: uid('c'), name: 'Essenciais', collapsed: false }],
+            expenses: []
+          };
+        } else {
+          const src = state.months.find((m) => m.id === sourceId) || getActiveMonth();
+          const catIdMap = {};
+          const clonedCats = src.categories.map((c) => {
+            const newId = uid('c');
+            catIdMap[c.id] = newId;
+            return { ...c, id: newId };
+          });
+          newMonth = {
+            id: uid('m'),
+            name,
+            incomes: src.incomes.map((i) => ({ ...i, id: uid('i'), date: addMonthsToIsoDate(i.date, 1) })),
+            categories: clonedCats,
+            expenses: src.expenses.map((ex) => ({
+              ...ex,
+              id: uid('e'),
+              categoryId: catIdMap[ex.categoryId] || clonedCats[0]?.id,
+              date: addMonthsToIsoDate(ex.date, 1)
+            }))
+          };
+        }
+
+        state.months.push(newMonth);
+        state.activeMonthId = newMonth.id;
+        saveState();
+        closeModal('modalMonth');
+        setActiveTab(state.activeTab);
+        showToast(`Mês "${name}" criado!`);
+      });
+
+      // Nova Entrada
+      document.getElementById('btnAddIncome').addEventListener('click', () => {
+        document.getElementById('formNewIncome').reset();
+        document.getElementById('newIncomeDate').value = getDefaultDateForMonth(getActiveMonth());
+        document.getElementById('newIncomeValue').value = '500';
+        document.getElementById('newIncomeMax').value = '5000';
+        openModal('modalIncome');
+        setTimeout(() => document.getElementById('newIncomeName').focus(), 40);
+      });
+
+      document.getElementById('formNewIncome').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('newIncomeName').value.trim();
+        const date = document.getElementById('newIncomeDate').value || getDefaultDateForMonth(getActiveMonth());
+        const value = Math.max(0, parseFloat(document.getElementById('newIncomeValue').value) || 0);
+        let max = Math.max(10, parseFloat(document.getElementById('newIncomeMax').value) || 5000);
+        if (value > max) max = Math.ceil(value / 500) * 500;
+        if (!name) return;
+
+        getActiveMonth().incomes.push({ id: uid('i'), date, name, value, min: 0, max, step: 50, enabled: true });
+        saveState();
+        closeModal('modalIncome');
+        renderSimulatorTab();
+        showToast(`Entrada "${name}" adicionada!`);
+      });
+
+      // Novo Gasto
+      function openExpenseModal(preselectCatId) {
+        document.getElementById('formNewExpense').reset();
+        const month = getActiveMonth();
+        document.getElementById('newExpenseDate').value = getDefaultDateForMonth(month);
+        document.getElementById('newExpenseValue').value = '250';
+        document.getElementById('newExpenseMax').value = '2000';
+
+        const select = document.getElementById('newExpenseCategory');
+        select.innerHTML =
+          month.categories.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('') +
+          '<option value="__NEW__">+ Criar nova categoria...</option>';
+
+        if (preselectCatId && month.categories.some((c) => c.id === preselectCatId)) {
+          select.value = preselectCatId;
+        }
+
+        const isNew = select.value === '__NEW__';
+        document.getElementById('newCategoryFields').style.display = isNew ? 'block' : 'none';
+        document.getElementById('newCategoryName').required = isNew;
+        openModal('modalExpense');
+        setTimeout(() => document.getElementById('newExpenseName').focus(), 40);
+      }
+
+      document.getElementById('btnAddExpense').addEventListener('click', () => openExpenseModal(null));
+
+      document.getElementById('newExpenseCategory').addEventListener('change', (e) => {
+        const isNew = e.target.value === '__NEW__';
+        document.getElementById('newCategoryFields').style.display = isNew ? 'block' : 'none';
+        document.getElementById('newCategoryName').required = isNew;
+      });
+
+      document.getElementById('formNewExpense').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const month = getActiveMonth();
+        const name = document.getElementById('newExpenseName').value.trim();
+        const date = document.getElementById('newExpenseDate').value || getDefaultDateForMonth(month);
+        let catId = document.getElementById('newExpenseCategory').value;
+        const value = Math.max(0, parseFloat(document.getElementById('newExpenseValue').value) || 0);
+        let max = Math.max(10, parseFloat(document.getElementById('newExpenseMax').value) || 2000);
+        if (value > max) max = Math.ceil(value / 250) * 250;
+        if (!name) return;
+
+        if (catId === '__NEW__') {
+          const newCatName = document.getElementById('newCategoryName').value.trim() || 'Nova Categoria';
+          const newCat = { id: uid('c'), name: newCatName, collapsed: false };
+          month.categories.push(newCat);
+          catId = newCat.id;
+        } else {
+          const cat = month.categories.find((c) => c.id === catId);
+          if (cat) cat.collapsed = false;
+        }
+
+        month.expenses.push({ id: uid('e'), categoryId: catId, date, name, value, min: 0, max, step: 10, enabled: true });
+        saveState();
+        closeModal('modalExpense');
+        renderSimulatorTab();
+        showToast(`Gasto "${name}" adicionado!`);
+      });
+
+      // Nova Meta
+      document.getElementById('btnAddGoal').addEventListener('click', () => {
+        document.getElementById('formNewGoal').reset();
+        document.getElementById('newGoalTarget').value = '5000';
+        document.getElementById('newGoalAllocated').value = '0';
+        openModal('modalGoal');
+        setTimeout(() => document.getElementById('newGoalName').focus(), 40);
+      });
+
+      document.getElementById('formNewGoal').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('newGoalName').value.trim();
+        const target = Math.max(1, parseFloat(document.getElementById('newGoalTarget').value) || 1000);
+        const allocated = Math.max(0, parseFloat(document.getElementById('newGoalAllocated').value) || 0);
+        const note = document.getElementById('newGoalNote').value.trim();
+        if (!name) return;
+
+        state.goals.push({ id: uid('g'), name, target, allocated, note });
+        saveState();
+        closeModal('modalGoal');
+        renderGoalsTab();
+        showToast(`Meta "${name}" criada!`);
+      });
+
+      // Restaurar Padrão & Backup JSON
+      document.getElementById('btnResetDefault').addEventListener('click', () => {
+        openConfirm(
+          'Restaurar padrão',
+          'Todos os meses, datas, valores e metas voltarão aos dados iniciais. Deseja continuar?',
+          () => {
+            state = getDefaultState();
+            saveState();
+            setActiveTab(state.activeTab);
+            showToast('Dados padrão restaurados.');
+          }
+        );
+      });
+
+      document.getElementById('btnExportJson').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'backup_simulador_financeiro.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Backup JSON baixado!');
+      });
+
+      document.getElementById('btnImportJson').addEventListener('click', () => {
+        document.getElementById('inputImportJson').click();
+      });
+
+      document.getElementById('inputImportJson').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (!parsed || !Array.isArray(parsed.months) || !parsed.months.length) {
+              showToast('Arquivo de backup inválido.');
+              return;
+            }
+            state = parsed;
+            if (!state.months.some((m) => m.id === state.activeMonthId)) {
+              state.activeMonthId = state.months[0].id;
+            }
+            saveState();
+            setActiveTab(state.activeTab || 'simulador');
+            showToast('Backup importado!');
+          } catch (err) {
+            showToast('Erro ao ler o arquivo JSON.');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      });
+
+      // Inicialização
+      setActiveTab(state.activeTab || 'simulador');
+    })();
+  </script>
+</body>
+</html>
